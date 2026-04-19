@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shanzhu.purchase.mapper.CkmdDepositoryOutMapper">
+  <resultMap id="BaseResultMap" type="com.shanzhu.purchase.model.CkmdDepositoryOut">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="source_number" jdbcType="BIGINT" property="sourceNumber" />
+    <result column="out_id" jdbcType="BIGINT" property="outId" />
+    <result column="depository" jdbcType="VARCHAR" property="depository" />
+    <result column="shop_name" jdbcType="VARCHAR" property="shopName" />
+    <result column="shop_price" jdbcType="DECIMAL" property="shopPrice" />
+    <result column="shop_number" jdbcType="BIGINT" property="shopNumber" />
+    <result column="total_price" jdbcType="DECIMAL" property="totalPrice" />
+    <result column="specs" jdbcType="VARCHAR" property="specs" />
+    <result column="date" jdbcType="TIMESTAMP" property="date" />
+    <result column="out_user" jdbcType="VARCHAR" property="outUser" />
+    <result column="shop_supplier" jdbcType="VARCHAR" property="shopSupplier" />
+    <result column="status" jdbcType="INTEGER" property="status" />
+    <result column="out_inspection" jdbcType="INTEGER" property="outInspection" />
+    <result column="create_date" jdbcType="TIMESTAMP" property="createDate" />
+  </resultMap>
+  <sql id="Example_Where_Clause">
+    <where>
+      <foreach collection="oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause">
+    <where>
+      <foreach collection="example.oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List">
+    id, source_number, out_id, depository, shop_name, shop_price, shop_number, total_price, 
+    specs, date, out_user, shop_supplier, status, out_inspection, create_date
+  </sql>
+  <select id="selectByExample" parameterType="com.shanzhu.purchase.model.CkmdDepositoryOutExample" resultMap="BaseResultMap">
+    select
+    <if test="distinct">
+      distinct
+    </if>
+    <include refid="Base_Column_List" />
+    from ckmd_depository_out
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null">
+      order by ${orderByClause}
+    </if>
+  </select>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from ckmd_depository_out
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from ckmd_depository_out
+    where id = #{id,jdbcType=BIGINT}
+  </delete>
+  <delete id="deleteByExample" parameterType="com.shanzhu.purchase.model.CkmdDepositoryOutExample">
+    delete from ckmd_depository_out
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </delete>
+  <insert id="insert" parameterType="com.shanzhu.purchase.model.CkmdDepositoryOut">
+    <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
+      SELECT LAST_INSERT_ID()
+    </selectKey>
+    insert into ckmd_depository_out (source_number, out_id, depository, 
+      shop_name, shop_price, shop_number, 
+      total_price, specs, date, 
+      out_user, shop_supplier, status, 
+      out_inspection, create_date)
+    values (#{sourceNumber,jdbcType=BIGINT}, #{outId,jdbcType=BIGINT}, #{depository,jdbcType=VARCHAR}, 
+      #{shopName,jdbcType=VARCHAR}, #{shopPrice,jdbcType=DECIMAL}, #{shopNumber,jdbcType=BIGINT}, 
+      #{totalPrice,jdbcType=DECIMAL}, #{specs,jdbcType=VARCHAR}, #{date,jdbcType=TIMESTAMP}, 
+      #{outUser,jdbcType=VARCHAR}, #{shopSupplier,jdbcType=VARCHAR}, #{status,jdbcType=INTEGER}, 
+      #{outInspection,jdbcType=INTEGER}, #{createDate,jdbcType=TIMESTAMP})
+  </insert>
+  <insert id="insertSelective" parameterType="com.shanzhu.purchase.model.CkmdDepositoryOut">
+    <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
+      SELECT LAST_INSERT_ID()
+    </selectKey>
+    insert into ckmd_depository_out
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="sourceNumber != null">
+        source_number,
+      </if>
+      <if test="outId != null">
+        out_id,
+      </if>
+      <if test="depository != null">
+        depository,
+      </if>
+      <if test="shopName != null">
+        shop_name,
+      </if>
+      <if test="shopPrice != null">
+        shop_price,
+      </if>
+      <if test="shopNumber != null">
+        shop_number,
+      </if>
+      <if test="totalPrice != null">
+        total_price,
+      </if>
+      <if test="specs != null">
+        specs,
+      </if>
+      <if test="date != null">
+        date,
+      </if>
+      <if test="outUser != null">
+        out_user,
+      </if>
+      <if test="shopSupplier != null">
+        shop_supplier,
+      </if>
+      <if test="status != null">
+        status,
+      </if>
+      <if test="outInspection != null">
+        out_inspection,
+      </if>
+      <if test="createDate != null">
+        create_date,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="sourceNumber != null">
+        #{sourceNumber,jdbcType=BIGINT},
+      </if>
+      <if test="outId != null">
+        #{outId,jdbcType=BIGINT},
+      </if>
+      <if test="depository != null">
+        #{depository,jdbcType=VARCHAR},
+      </if>
+      <if test="shopName != null">
+        #{shopName,jdbcType=VARCHAR},
+      </if>
+      <if test="shopPrice != null">
+        #{shopPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="shopNumber != null">
+        #{shopNumber,jdbcType=BIGINT},
+      </if>
+      <if test="totalPrice != null">
+        #{totalPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="specs != null">
+        #{specs,jdbcType=VARCHAR},
+      </if>
+      <if test="date != null">
+        #{date,jdbcType=TIMESTAMP},
+      </if>
+      <if test="outUser != null">
+        #{outUser,jdbcType=VARCHAR},
+      </if>
+      <if test="shopSupplier != null">
+        #{shopSupplier,jdbcType=VARCHAR},
+      </if>
+      <if test="status != null">
+        #{status,jdbcType=INTEGER},
+      </if>
+      <if test="outInspection != null">
+        #{outInspection,jdbcType=INTEGER},
+      </if>
+      <if test="createDate != null">
+        #{createDate,jdbcType=TIMESTAMP},
+      </if>
+    </trim>
+  </insert>
+  <select id="countByExample" parameterType="com.shanzhu.purchase.model.CkmdDepositoryOutExample" resultType="java.lang.Long">
+    select count(*) from ckmd_depository_out
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateByExampleSelective" parameterType="map">
+    update ckmd_depository_out
+    <set>
+      <if test="row.id != null">
+        id = #{row.id,jdbcType=BIGINT},
+      </if>
+      <if test="row.sourceNumber != null">
+        source_number = #{row.sourceNumber,jdbcType=BIGINT},
+      </if>
+      <if test="row.outId != null">
+        out_id = #{row.outId,jdbcType=BIGINT},
+      </if>
+      <if test="row.depository != null">
+        depository = #{row.depository,jdbcType=VARCHAR},
+      </if>
+      <if test="row.shopName != null">
+        shop_name = #{row.shopName,jdbcType=VARCHAR},
+      </if>
+      <if test="row.shopPrice != null">
+        shop_price = #{row.shopPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="row.shopNumber != null">
+        shop_number = #{row.shopNumber,jdbcType=BIGINT},
+      </if>
+      <if test="row.totalPrice != null">
+        total_price = #{row.totalPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="row.specs != null">
+        specs = #{row.specs,jdbcType=VARCHAR},
+      </if>
+      <if test="row.date != null">
+        date = #{row.date,jdbcType=TIMESTAMP},
+      </if>
+      <if test="row.outUser != null">
+        out_user = #{row.outUser,jdbcType=VARCHAR},
+      </if>
+      <if test="row.shopSupplier != null">
+        shop_supplier = #{row.shopSupplier,jdbcType=VARCHAR},
+      </if>
+      <if test="row.status != null">
+        status = #{row.status,jdbcType=INTEGER},
+      </if>
+      <if test="row.outInspection != null">
+        out_inspection = #{row.outInspection,jdbcType=INTEGER},
+      </if>
+      <if test="row.createDate != null">
+        create_date = #{row.createDate,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    <if test="example != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByExample" parameterType="map">
+    update ckmd_depository_out
+    set id = #{row.id,jdbcType=BIGINT},
+      source_number = #{row.sourceNumber,jdbcType=BIGINT},
+      out_id = #{row.outId,jdbcType=BIGINT},
+      depository = #{row.depository,jdbcType=VARCHAR},
+      shop_name = #{row.shopName,jdbcType=VARCHAR},
+      shop_price = #{row.shopPrice,jdbcType=DECIMAL},
+      shop_number = #{row.shopNumber,jdbcType=BIGINT},
+      total_price = #{row.totalPrice,jdbcType=DECIMAL},
+      specs = #{row.specs,jdbcType=VARCHAR},
+      date = #{row.date,jdbcType=TIMESTAMP},
+      out_user = #{row.outUser,jdbcType=VARCHAR},
+      shop_supplier = #{row.shopSupplier,jdbcType=VARCHAR},
+      status = #{row.status,jdbcType=INTEGER},
+      out_inspection = #{row.outInspection,jdbcType=INTEGER},
+      create_date = #{row.createDate,jdbcType=TIMESTAMP}
+    <if test="example != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByPrimaryKeySelective" parameterType="com.shanzhu.purchase.model.CkmdDepositoryOut">
+    update ckmd_depository_out
+    <set>
+      <if test="sourceNumber != null">
+        source_number = #{sourceNumber,jdbcType=BIGINT},
+      </if>
+      <if test="outId != null">
+        out_id = #{outId,jdbcType=BIGINT},
+      </if>
+      <if test="depository != null">
+        depository = #{depository,jdbcType=VARCHAR},
+      </if>
+      <if test="shopName != null">
+        shop_name = #{shopName,jdbcType=VARCHAR},
+      </if>
+      <if test="shopPrice != null">
+        shop_price = #{shopPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="shopNumber != null">
+        shop_number = #{shopNumber,jdbcType=BIGINT},
+      </if>
+      <if test="totalPrice != null">
+        total_price = #{totalPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="specs != null">
+        specs = #{specs,jdbcType=VARCHAR},
+      </if>
+      <if test="date != null">
+        date = #{date,jdbcType=TIMESTAMP},
+      </if>
+      <if test="outUser != null">
+        out_user = #{outUser,jdbcType=VARCHAR},
+      </if>
+      <if test="shopSupplier != null">
+        shop_supplier = #{shopSupplier,jdbcType=VARCHAR},
+      </if>
+      <if test="status != null">
+        status = #{status,jdbcType=INTEGER},
+      </if>
+      <if test="outInspection != null">
+        out_inspection = #{outInspection,jdbcType=INTEGER},
+      </if>
+      <if test="createDate != null">
+        create_date = #{createDate,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.shanzhu.purchase.model.CkmdDepositoryOut">
+    update ckmd_depository_out
+    set source_number = #{sourceNumber,jdbcType=BIGINT},
+      out_id = #{outId,jdbcType=BIGINT},
+      depository = #{depository,jdbcType=VARCHAR},
+      shop_name = #{shopName,jdbcType=VARCHAR},
+      shop_price = #{shopPrice,jdbcType=DECIMAL},
+      shop_number = #{shopNumber,jdbcType=BIGINT},
+      total_price = #{totalPrice,jdbcType=DECIMAL},
+      specs = #{specs,jdbcType=VARCHAR},
+      date = #{date,jdbcType=TIMESTAMP},
+      out_user = #{outUser,jdbcType=VARCHAR},
+      shop_supplier = #{shopSupplier,jdbcType=VARCHAR},
+      status = #{status,jdbcType=INTEGER},
+      out_inspection = #{outInspection,jdbcType=INTEGER},
+      create_date = #{createDate,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+</mapper>

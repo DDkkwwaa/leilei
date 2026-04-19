@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shanzhu.purchase.dao.XtAdminDao">
+
+
+    <!--问题描述
+       使用mapper上的注解 可以运行 加强 配置的理解 以及准确性
+        //找不到mappper可能原因  mbg中 mapper没有配置全路径名
+    -->
+
+
+                        <!--对一张表的CRUD可以都使用mbg中的方法-->
+
+<!--      <resultMap id="baseResultMap" type="model.com.shanzhu.purchase.XtmdAdmin" extends="mapper.com.shanzhu.purchase.XtmdAdminMapper.BaseResultMap">-->
+
+<!--      </resultMap> parameterType="java.lang.String" resultType="model.com.shanzhu.purchase.XtmdAdmin" -->
+<!--
+      <select id="getAdminByUserName" >
+            select * from xtmd_admin
+            where  login_name =#{LonginName}
+      </select>
+      <select id="getAdminList" >
+          select * from xtmd_admin a where a.id =
+        <foreach collection="list" separator="," item="item" index="index">
+              (#{item.id,jdbctype=BIGINT})
+        </foreach>
+      </select>
+      <insert id="addAdmin" >
+            insert into
+                xtmd_admin(id,login_name,user_name,pwd,status,e-ali,phone,create_tome)
+            values
+      </insert>
+-->
+
+
+    <!--x  ===================================================================================================== x-->
+
+<!--在原有表的基础上需要新的字段的话  可以使用extends -->
+
+<select id="getAdminByUsername" resultType="com.shanzhu.purchase.model.XtmdAdmin" >
+      select  id,
+              dept,
+              login_name as loginName,
+              user_name as userName,
+              pwd,salt,icon,status,e_mail as eMail,phone,create_time as createTime,
+              login_ip as loginIp,login_date as loginDate,
+              sex,remark
+      from xtmd_admin
+      where  login_name =#{LonginName}
+</select>
+
+     <update id="updatePasswordByuserName">
+         update xtmd_admin set password= #{updatePassword} where user_name= #{userName}
+     </update>
+
+
+
+
+
+    </mapper>
+
+
+

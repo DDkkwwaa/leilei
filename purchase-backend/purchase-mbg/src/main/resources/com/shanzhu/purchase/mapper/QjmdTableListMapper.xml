@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shanzhu.purchase.mapper.QjmdTableListMapper">
+  <resultMap id="BaseResultMap" type="com.shanzhu.purchase.model.QjmdTableList">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="tableName" jdbcType="VARCHAR" property="tablename" />
+    <result column="md" jdbcType="VARCHAR" property="md" />
+    <result column="describe" jdbcType="VARCHAR" property="describe" />
+    <result column="sort" jdbcType="BIGINT" property="sort" />
+    <result column="children" jdbcType="BIGINT" property="children" />
+    <result column="remark" jdbcType="VARCHAR" property="remark" />
+  </resultMap>
+  <sql id="Example_Where_Clause">
+    <where>
+      <foreach collection="oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause">
+    <where>
+      <foreach collection="example.oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List">
+    id, tableName, md, describe, sort, children, remark
+  </sql>
+  <select id="selectByExample" parameterType="com.shanzhu.purchase.model.QjmdTableListExample" resultMap="BaseResultMap">
+    select
+    <if test="distinct">
+      distinct
+    </if>
+    <include refid="Base_Column_List" />
+    from qjmd_table_list
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null">
+      order by ${orderByClause}
+    </if>
+  </select>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from qjmd_table_list
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from qjmd_table_list
+    where id = #{id,jdbcType=BIGINT}
+  </delete>
+  <delete id="deleteByExample" parameterType="com.shanzhu.purchase.model.QjmdTableListExample">
+    delete from qjmd_table_list
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </delete>
+  <insert id="insert" parameterType="com.shanzhu.purchase.model.QjmdTableList">
+    <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
+      SELECT LAST_INSERT_ID()
+    </selectKey>
+    insert into qjmd_table_list (tableName, md, describe, 
+      sort, children, remark
+      )
+    values (#{tablename,jdbcType=VARCHAR}, #{md,jdbcType=VARCHAR}, #{describe,jdbcType=VARCHAR}, 
+      #{sort,jdbcType=BIGINT}, #{children,jdbcType=BIGINT}, #{remark,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.shanzhu.purchase.model.QjmdTableList">
+    <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
+      SELECT LAST_INSERT_ID()
+    </selectKey>
+    insert into qjmd_table_list
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="tablename != null">
+        tableName,
+      </if>
+      <if test="md != null">
+        md,
+      </if>
+      <if test="describe != null">
+        describe,
+      </if>
+      <if test="sort != null">
+        sort,
+      </if>
+      <if test="children != null">
+        children,
+      </if>
+      <if test="remark != null">
+        remark,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="tablename != null">
+        #{tablename,jdbcType=VARCHAR},
+      </if>
+      <if test="md != null">
+        #{md,jdbcType=VARCHAR},
+      </if>
+      <if test="describe != null">
+        #{describe,jdbcType=VARCHAR},
+      </if>
+      <if test="sort != null">
+        #{sort,jdbcType=BIGINT},
+      </if>
+      <if test="children != null">
+        #{children,jdbcType=BIGINT},
+      </if>
+      <if test="remark != null">
+        #{remark,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <select id="countByExample" parameterType="com.shanzhu.purchase.model.QjmdTableListExample" resultType="java.lang.Long">
+    select count(*) from qjmd_table_list
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateByExampleSelective" parameterType="map">
+    update qjmd_table_list
+    <set>
+      <if test="row.id != null">
+        id = #{row.id,jdbcType=BIGINT},
+      </if>
+      <if test="row.tablename != null">
+        tableName = #{row.tablename,jdbcType=VARCHAR},
+      </if>
+      <if test="row.md != null">
+        md = #{row.md,jdbcType=VARCHAR},
+      </if>
+      <if test="row.describe != null">
+        describe = #{row.describe,jdbcType=VARCHAR},
+      </if>
+      <if test="row.sort != null">
+        sort = #{row.sort,jdbcType=BIGINT},
+      </if>
+      <if test="row.children != null">
+        children = #{row.children,jdbcType=BIGINT},
+      </if>
+      <if test="row.remark != null">
+        remark = #{row.remark,jdbcType=VARCHAR},
+      </if>
+    </set>
+    <if test="example != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByExample" parameterType="map">
+    update qjmd_table_list
+    set id = #{row.id,jdbcType=BIGINT},
+      tableName = #{row.tablename,jdbcType=VARCHAR},
+      md = #{row.md,jdbcType=VARCHAR},
+      describe = #{row.describe,jdbcType=VARCHAR},
+      sort = #{row.sort,jdbcType=BIGINT},
+      children = #{row.children,jdbcType=BIGINT},
+      remark = #{row.remark,jdbcType=VARCHAR}
+    <if test="example != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByPrimaryKeySelective" parameterType="com.shanzhu.purchase.model.QjmdTableList">
+    update qjmd_table_list
+    <set>
+      <if test="tablename != null">
+        tableName = #{tablename,jdbcType=VARCHAR},
+      </if>
+      <if test="md != null">
+        md = #{md,jdbcType=VARCHAR},
+      </if>
+      <if test="describe != null">
+        describe = #{describe,jdbcType=VARCHAR},
+      </if>
+      <if test="sort != null">
+        sort = #{sort,jdbcType=BIGINT},
+      </if>
+      <if test="children != null">
+        children = #{children,jdbcType=BIGINT},
+      </if>
+      <if test="remark != null">
+        remark = #{remark,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.shanzhu.purchase.model.QjmdTableList">
+    update qjmd_table_list
+    set tableName = #{tablename,jdbcType=VARCHAR},
+      md = #{md,jdbcType=VARCHAR},
+      describe = #{describe,jdbcType=VARCHAR},
+      sort = #{sort,jdbcType=BIGINT},
+      children = #{children,jdbcType=BIGINT},
+      remark = #{remark,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+</mapper>

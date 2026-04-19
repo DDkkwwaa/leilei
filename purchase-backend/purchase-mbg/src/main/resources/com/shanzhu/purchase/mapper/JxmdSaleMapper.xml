@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shanzhu.purchase.mapper.JxmdSaleMapper">
+  <resultMap id="BaseResultMap" type="com.shanzhu.purchase.model.JxmdSale">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="sale_Number" jdbcType="VARCHAR" property="saleNumber" />
+    <result column="sale_user" jdbcType="VARCHAR" property="saleUser" />
+    <result column="shop" jdbcType="VARCHAR" property="shop" />
+    <result column="shop_type" jdbcType="VARCHAR" property="shopType" />
+    <result column="supplier" jdbcType="VARCHAR" property="supplier" />
+    <result column="num" jdbcType="BIGINT" property="num" />
+    <result column="specs" jdbcType="VARCHAR" property="specs" />
+    <result column="price" jdbcType="DECIMAL" property="price" />
+    <result column="total_price" jdbcType="DECIMAL" property="totalPrice" />
+    <result column="time" jdbcType="TIMESTAMP" property="time" />
+    <result column="status" jdbcType="INTEGER" property="status" />
+    <result column="remark" jdbcType="VARCHAR" property="remark" />
+  </resultMap>
+  <sql id="Example_Where_Clause">
+    <where>
+      <foreach collection="oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause">
+    <where>
+      <foreach collection="example.oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List">
+    id, sale_Number, sale_user, shop, shop_type, supplier, num, specs, price, total_price, 
+    time, status, remark
+  </sql>
+  <select id="selectByExample" parameterType="com.shanzhu.purchase.model.JxmdSaleExample" resultMap="BaseResultMap">
+    select
+    <if test="distinct">
+      distinct
+    </if>
+    <include refid="Base_Column_List" />
+    from jxmd_sale
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null">
+      order by ${orderByClause}
+    </if>
+  </select>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from jxmd_sale
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from jxmd_sale
+    where id = #{id,jdbcType=BIGINT}
+  </delete>
+  <delete id="deleteByExample" parameterType="com.shanzhu.purchase.model.JxmdSaleExample">
+    delete from jxmd_sale
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </delete>
+  <insert id="insert" parameterType="com.shanzhu.purchase.model.JxmdSale">
+    <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
+      SELECT LAST_INSERT_ID()
+    </selectKey>
+    insert into jxmd_sale (sale_Number, sale_user, shop, 
+      shop_type, supplier, num, 
+      specs, price, total_price, 
+      time, status, remark
+      )
+    values (#{saleNumber,jdbcType=VARCHAR}, #{saleUser,jdbcType=VARCHAR}, #{shop,jdbcType=VARCHAR}, 
+      #{shopType,jdbcType=VARCHAR}, #{supplier,jdbcType=VARCHAR}, #{num,jdbcType=BIGINT}, 
+      #{specs,jdbcType=VARCHAR}, #{price,jdbcType=DECIMAL}, #{totalPrice,jdbcType=DECIMAL}, 
+      #{time,jdbcType=TIMESTAMP}, #{status,jdbcType=INTEGER}, #{remark,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.shanzhu.purchase.model.JxmdSale">
+    <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
+      SELECT LAST_INSERT_ID()
+    </selectKey>
+    insert into jxmd_sale
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="saleNumber != null">
+        sale_Number,
+      </if>
+      <if test="saleUser != null">
+        sale_user,
+      </if>
+      <if test="shop != null">
+        shop,
+      </if>
+      <if test="shopType != null">
+        shop_type,
+      </if>
+      <if test="supplier != null">
+        supplier,
+      </if>
+      <if test="num != null">
+        num,
+      </if>
+      <if test="specs != null">
+        specs,
+      </if>
+      <if test="price != null">
+        price,
+      </if>
+      <if test="totalPrice != null">
+        total_price,
+      </if>
+      <if test="time != null">
+        time,
+      </if>
+      <if test="status != null">
+        status,
+      </if>
+      <if test="remark != null">
+        remark,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="saleNumber != null">
+        #{saleNumber,jdbcType=VARCHAR},
+      </if>
+      <if test="saleUser != null">
+        #{saleUser,jdbcType=VARCHAR},
+      </if>
+      <if test="shop != null">
+        #{shop,jdbcType=VARCHAR},
+      </if>
+      <if test="shopType != null">
+        #{shopType,jdbcType=VARCHAR},
+      </if>
+      <if test="supplier != null">
+        #{supplier,jdbcType=VARCHAR},
+      </if>
+      <if test="num != null">
+        #{num,jdbcType=BIGINT},
+      </if>
+      <if test="specs != null">
+        #{specs,jdbcType=VARCHAR},
+      </if>
+      <if test="price != null">
+        #{price,jdbcType=DECIMAL},
+      </if>
+      <if test="totalPrice != null">
+        #{totalPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="time != null">
+        #{time,jdbcType=TIMESTAMP},
+      </if>
+      <if test="status != null">
+        #{status,jdbcType=INTEGER},
+      </if>
+      <if test="remark != null">
+        #{remark,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <select id="countByExample" parameterType="com.shanzhu.purchase.model.JxmdSaleExample" resultType="java.lang.Long">
+    select count(*) from jxmd_sale
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateByExampleSelective" parameterType="map">
+    update jxmd_sale
+    <set>
+      <if test="row.id != null">
+        id = #{row.id,jdbcType=BIGINT},
+      </if>
+      <if test="row.saleNumber != null">
+        sale_Number = #{row.saleNumber,jdbcType=VARCHAR},
+      </if>
+      <if test="row.saleUser != null">
+        sale_user = #{row.saleUser,jdbcType=VARCHAR},
+      </if>
+      <if test="row.shop != null">
+        shop = #{row.shop,jdbcType=VARCHAR},
+      </if>
+      <if test="row.shopType != null">
+        shop_type = #{row.shopType,jdbcType=VARCHAR},
+      </if>
+      <if test="row.supplier != null">
+        supplier = #{row.supplier,jdbcType=VARCHAR},
+      </if>
+      <if test="row.num != null">
+        num = #{row.num,jdbcType=BIGINT},
+      </if>
+      <if test="row.specs != null">
+        specs = #{row.specs,jdbcType=VARCHAR},
+      </if>
+      <if test="row.price != null">
+        price = #{row.price,jdbcType=DECIMAL},
+      </if>
+      <if test="row.totalPrice != null">
+        total_price = #{row.totalPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="row.time != null">
+        time = #{row.time,jdbcType=TIMESTAMP},
+      </if>
+      <if test="row.status != null">
+        status = #{row.status,jdbcType=INTEGER},
+      </if>
+      <if test="row.remark != null">
+        remark = #{row.remark,jdbcType=VARCHAR},
+      </if>
+    </set>
+    <if test="example != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByExample" parameterType="map">
+    update jxmd_sale
+    set id = #{row.id,jdbcType=BIGINT},
+      sale_Number = #{row.saleNumber,jdbcType=VARCHAR},
+      sale_user = #{row.saleUser,jdbcType=VARCHAR},
+      shop = #{row.shop,jdbcType=VARCHAR},
+      shop_type = #{row.shopType,jdbcType=VARCHAR},
+      supplier = #{row.supplier,jdbcType=VARCHAR},
+      num = #{row.num,jdbcType=BIGINT},
+      specs = #{row.specs,jdbcType=VARCHAR},
+      price = #{row.price,jdbcType=DECIMAL},
+      total_price = #{row.totalPrice,jdbcType=DECIMAL},
+      time = #{row.time,jdbcType=TIMESTAMP},
+      status = #{row.status,jdbcType=INTEGER},
+      remark = #{row.remark,jdbcType=VARCHAR}
+    <if test="example != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByPrimaryKeySelective" parameterType="com.shanzhu.purchase.model.JxmdSale">
+    update jxmd_sale
+    <set>
+      <if test="saleNumber != null">
+        sale_Number = #{saleNumber,jdbcType=VARCHAR},
+      </if>
+      <if test="saleUser != null">
+        sale_user = #{saleUser,jdbcType=VARCHAR},
+      </if>
+      <if test="shop != null">
+        shop = #{shop,jdbcType=VARCHAR},
+      </if>
+      <if test="shopType != null">
+        shop_type = #{shopType,jdbcType=VARCHAR},
+      </if>
+      <if test="supplier != null">
+        supplier = #{supplier,jdbcType=VARCHAR},
+      </if>
+      <if test="num != null">
+        num = #{num,jdbcType=BIGINT},
+      </if>
+      <if test="specs != null">
+        specs = #{specs,jdbcType=VARCHAR},
+      </if>
+      <if test="price != null">
+        price = #{price,jdbcType=DECIMAL},
+      </if>
+      <if test="totalPrice != null">
+        total_price = #{totalPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="time != null">
+        time = #{time,jdbcType=TIMESTAMP},
+      </if>
+      <if test="status != null">
+        status = #{status,jdbcType=INTEGER},
+      </if>
+      <if test="remark != null">
+        remark = #{remark,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.shanzhu.purchase.model.JxmdSale">
+    update jxmd_sale
+    set sale_Number = #{saleNumber,jdbcType=VARCHAR},
+      sale_user = #{saleUser,jdbcType=VARCHAR},
+      shop = #{shop,jdbcType=VARCHAR},
+      shop_type = #{shopType,jdbcType=VARCHAR},
+      supplier = #{supplier,jdbcType=VARCHAR},
+      num = #{num,jdbcType=BIGINT},
+      specs = #{specs,jdbcType=VARCHAR},
+      price = #{price,jdbcType=DECIMAL},
+      total_price = #{totalPrice,jdbcType=DECIMAL},
+      time = #{time,jdbcType=TIMESTAMP},
+      status = #{status,jdbcType=INTEGER},
+      remark = #{remark,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+</mapper>

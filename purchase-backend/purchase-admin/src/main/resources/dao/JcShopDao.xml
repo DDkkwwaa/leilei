@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shanzhu.purchase.dao.JcShopDao">
+        <select id="selectShopTypeByName" resultType="com.shanzhu.purchase.model.JcmdShopType">
+            SELECT * FROM jcmd_shop_type
+                     WHERE  id IN
+                            (SELECT parent_id FROM jcmd_shop  WHERE  `name`=#{ShopName} )
+        </select>
+
+<!--    <select id="getShopNameAll" resultType="model.com.shanzhu.purchase.JcmdShopType">-->
+<!--            -->
+<!--    </select>-->
+</mapper>
+
+
+

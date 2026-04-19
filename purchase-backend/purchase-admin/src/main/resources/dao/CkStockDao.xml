@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shanzhu.purchase.dao.CkStockDao">
+        <update id="addQuantityByTwoName" >
+            UPDATE ckmd_stock SET
+                    quantity =quantity+#{quantity}
+                WHERE depository=#{depositoryName} AND shop=#{shopName}
+        </update>
+
+    <update id="reduceQuantityByTwoName" >
+        UPDATE ckmd_stock SET
+            quantity =quantity-#{quantity}
+        WHERE depository=#{depositoryName} AND shop=#{shopName}
+    </update>
+
+
+    <select id="getStockByTwoName" resultType="com.shanzhu.purchase.model.CkmdStock">
+        SELECT * FROM ckmd_stock  WHERE shop=#{shopName} and depository=#{depositoryName}
+    </select>
+
+    <select id="getStockLimitAndDESToEight" resultType="com.shanzhu.purchase.model.CkmdStock">
+        SELECT * FROM ckmd_stock
+                 ORDER BY quantity
+                 DESC LIMIT 8
+    </select>
+
+<!-- 获取 商品 销售量 库存量 采购量  前5个   resultType 是自定义使用   resultMap 需要再xml中自定义字段类型-->
+    <select id="getNumberToShopAndStockAndPurchase"  resultType="com.shanzhu.purchase.dto.ShopAndSaleAndStockAndPurchaseDto">
+        SELECT s1.shop AS shopName,
+               s1.sale_number AS saleNumber,
+               IFNULL(s2.stock_quantity, 0) AS StockNumber,
+               IFNULL(p.pq, 0) AS PurchaseNumber
+        FROM (
+                 SELECT shop, SUM(num) AS sale_number
+                 FROM jxmd_sale
+                 GROUP BY shop
+             ) AS s1
+                 LEFT JOIN (
+                     SELECT shop, SUM(quantity) AS stock_quantity
+                     FROM ckmd_stock
+                     GROUP BY shop
+                 ) AS s2 ON s1.shop = s2.shop
+                 LEFT JOIN (
+                     SELECT shop, SUM(quantity) AS pq
+                     FROM jxmd_purchase
+                     GROUP BY shop
+                 ) AS p ON s1.shop = p.shop
+        LIMIT 0,5
+    </select>
+</mapper>
+
+

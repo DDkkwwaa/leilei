@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shanzhu.purchase.dao.XtMenuDao">
+
+
+<!--    查询父菜单的信息-->
+    <select id="ListMenuParent" resultType="com.shanzhu.purchase.model.XtmdMenu">
+        SELECT *
+        FROM
+            xtmd_menu menu
+        WHERE
+            menu.parent_id = 0  ORDER BY sort
+    </select>
+
+
+    <select id="childMenu" resultType="com.shanzhu.purchase.model.XtmdMenu">
+        SELECT *
+        FROM
+            xtmd_menu menu
+        WHERE
+            menu.parent_id = #{id}  ORDER BY sort
+    </select>
+
+     <select id="queryMenuByRoleId" resultType="java.lang.Integer">
+         SELECT  id
+         FROM  xtmd_menu  WHERE
+             parent_id !=0 AND
+	 id IN (SELECT menu_id FROM  xtmd_role_menu_relation  WHERE role_id= #{RoleId})
+     </select>
+
+
+    <select id="selectShowMenuByAdminName" resultType="com.shanzhu.purchase.model.XtmdMenu">
+        SELECT   * FROM   xtmd_menu
+        WHERE    parent_id = 0
+          AND
+            id IN ( SELECT  menu_id  FROM  xtmd_role_menu_relation   WHERE  role_id IN (
+                    SELECT    role_id   FROM   xtmd_admin_role_relation role_id  WHERE admin_id IN (
+                            SELECT      id    FROM    xtmd_admin   WHERE user_name = #{userName})
+                )   )  ORDER BY sort
+
+    </select>
+
+    <select id="selectChildMenuByAdminName"  resultType="com.shanzhu.purchase.model.XtmdMenu">
+        SELECT   * FROM   xtmd_menu   WHERE   parent_id =#{id}
+          AND
+            id IN ( SELECT  menu_id  FROM  xtmd_role_menu_relation   WHERE  role_id IN (
+                SELECT    role_id   FROM   xtmd_admin_role_relation role_id  WHERE admin_id IN (
+                    SELECT      id    FROM    xtmd_admin   WHERE user_name =#{userName}
+                )
+            )) ORDER BY sort
+    </select>
+</mapper>
+
+
+
