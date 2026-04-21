@@ -2,11 +2,11 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.shanzhu.purchase.dao.JxPurchaseExitDao">
-<!--    通过采购编号查询-->
+    <select id="selectNumber" resultType="com.shanzhu.purchase.model.JxmdPurchaseExit">
+        select * from jxmd_purchase_exit where number = #{sourceNumber}
+    </select>
+
     <select id="getByField" resultType="com.shanzhu.purchase.model.JxmdPurchaseExit">
-        select * from   jxmd_purchase_exit where  number=#{sourceNumber}
+        select * from jxmd_purchase_exit where number = #{checkNumber}
     </select>
 </mapper>
-
-
-

@@ -2,102 +2,137 @@
   <div class="detail-page">
     <section class="detail-card">
       <div class="detail-toolbar">
-        <el-input v-model="query.keyword" placeholder="Order No" clearable class="query-input" />
-        <el-select v-model="query.status" clearable placeholder="Status" class="query-select">
-          <el-option label="Pending" :value="1" />
-          <el-option label="Completed" :value="0" />
+        <el-input v-model="query.keyword" placeholder="订单号" clearable class="query-input" />
+        <el-select v-model="query.statusCode" clearable placeholder="状态" class="query-select">
+          <el-option label="待生成波次" value="WAITING_WAVE" />
+          <el-option label="部分缺货" value="PARTIAL_SHORTAGE" />
+          <el-option label="拣货中" value="PICKING" />
+          <el-option label="已完成" value="COMPLETED" />
         </el-select>
         <el-date-picker
           v-model="query.dateRange"
           type="daterange"
           value-format="yyyy-MM-dd"
-          range-separator="to"
-          start-placeholder="Start"
-          end-placeholder="End"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
           class="query-date"
           clearable
         />
-        <button type="button" class="plain-btn" @click="refreshAll">Search</button>
-        <button type="button" class="plain-btn" @click="resetQuery">Reset</button>
+        <button type="button" class="plain-btn" @click="refreshAll">查询</button>
+        <button type="button" class="plain-btn" @click="resetQuery">重置</button>
       </div>
 
       <div class="detail-toolbar">
         <el-upload class="upload-wrap" action="" :http-request="uploadSaleExcel" :show-file-list="false" accept=".xls,.xlsx">
-          <button type="button" class="plain-btn">Import Excel Orders</button>
+          <button type="button" class="plain-btn">导入表格订单</button>
         </el-upload>
-        <button type="button" class="plain-btn" @click="$router.push('/mobilePick')">Mobile Picking Page</button>
+        <button type="button" class="plain-btn" @click="$router.push('/mobilePick')">移动拣货页</button>
       </div>
 
       <div class="detail-toolbar">
-        <el-select v-model="selectedNumber" placeholder="Select Sale Order" class="order-select">
+        <el-select v-model="selectedNumber" placeholder="选择销售单" class="order-select">
           <el-option v-for="item in orders" :key="item.saleNumber" :label="item.saleNumber" :value="item.saleNumber" />
         </el-select>
-        <el-select v-model="selectedDepository" placeholder="Select Depository" class="depository-select" clearable>
+        <el-select v-model="selectedDepository" placeholder="选择仓库" class="depository-select" clearable>
           <el-option v-for="item in depositoryOptions" :key="item.id" :label="item.name" :value="item.name" />
         </el-select>
-        <button
-          type="button"
-          class="plain-btn plain-btn--primary"
-          :disabled="!currentOrder || currentOrder.statusCode !== 'WAITING_WAVE'"
-          @click="handleCreateWave"
-        >
-          Create Wave
+        <button type="button" class="plain-btn plain-btn--primary" :disabled="!canCreateWave || creatingWave" @click="handleCreateWave(false)">
+          {{ creatingWave ? "生成中..." : "生成波次" }}
         </button>
-        <button
-          type="button"
-          class="plain-btn plain-btn--success"
-          :disabled="!currentOrder || currentOrder.statusCode !== 'PICKING'"
-          @click="handleFinishPick"
-        >
-          Finish Picking
+        <button type="button" class="plain-btn plain-btn--warning" :disabled="!canReplanWave || creatingWave" @click="handleCreateWave(true)">
+          {{ creatingWave ? "重排中..." : "重排波次" }}
+        </button>
+        <button type="button" class="plain-btn plain-btn--success" :disabled="!canFinishPick || finishingPick" @click="handleFinishPick">
+          {{ finishingPick ? "处理中..." : "完成拣货" }}
         </button>
       </div>
 
       <template v-if="currentOrder">
         <div class="detail-meta">
           <div class="detail-row">
-            <span>Order No</span>
+            <span>订单号</span>
             <strong>{{ currentOrder.saleNumber }}</strong>
-            <span>Order Time</span>
+            <span>下单时间</span>
             <strong>{{ formatTime(currentOrder.time) }}</strong>
           </div>
           <div class="detail-row">
-            <span>Customer</span>
+            <span>客户</span>
             <strong>{{ currentOrder.customer || "-" }}</strong>
-            <span>Salesman</span>
+            <span>销售员</span>
             <strong>{{ currentOrder.saleUser || "-" }}</strong>
           </div>
           <div class="detail-row">
-            <span>Wave No</span>
-            <strong>{{ currentOrder.waveNo || "Not Created" }}</strong>
-            <span>Depository</span>
+            <span>波次号</span>
+            <strong>{{ currentOrder.waveNo || "未生成" }}</strong>
+            <span>仓库</span>
             <strong>{{ currentOrder.depository || selectedDepository || "-" }}</strong>
           </div>
           <div class="detail-row">
-            <span>Status</span>
+            <span>状态</span>
             <strong>
               <em class="status-pill" :class="statusClass(currentOrder.statusCode)">
-                {{ currentOrder.statusLabel }}
+                {{ statusText(currentOrder.statusCode, currentOrder.statusLabel) }}
               </em>
             </strong>
-            <span>Total Amount</span>
+            <span>总金额</span>
             <strong>{{ currentOrder.totalAmount || 0 }}</strong>
           </div>
         </div>
       </template>
-      <div v-else class="empty-card">No sale order data.</div>
+      <div v-else class="empty-card">暂无销售单数据。</div>
     </section>
 
     <section class="detail-card">
-      <h3>Order Items</h3>
+      <h3>波次任务路径</h3>
+      <div v-if="currentOrder && currentOrder.waveNo" class="wave-view">
+        <div class="wave-summary">
+          <span>波次号：{{ currentOrder.waveNo }}</span>
+          <span>任务数：{{ currentWaveTasks.length }}</span>
+          <span>路径节点：{{ routeSteps.length }}</span>
+        </div>
+
+        <div v-if="routeSteps.length" class="path-board">
+          <div class="path-board__title">拣货路径看板</div>
+          <div class="path-board__scroll">
+            <div v-for="(node, index) in routeSteps" :key="`${node}-${index}`" class="path-node">
+              <div class="path-node__index">{{ index + 1 }}</div>
+              <div class="path-node__name">{{ node }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="currentWaveTasks.length" class="detail-table">
+          <div class="detail-table__head wave-head">
+            <span>顺序</span>
+            <span>库位</span>
+            <span>商品</span>
+            <span>待拣数量</span>
+            <span>仓库</span>
+          </div>
+          <div v-for="(item, index) in currentWaveTasks" :key="`${item.shopName}-${index}`" class="detail-table__row wave-row">
+            <span>{{ item.locationOrder || index + 1 }}</span>
+            <span>{{ item.location || "-" }}</span>
+            <span>{{ item.shopName || "-" }}</span>
+            <span>{{ item.needQuantity || 0 }}</span>
+            <span>{{ item.depository || "-" }}</span>
+          </div>
+        </div>
+        <div v-else class="empty-card">该订单暂未生成拣货任务。</div>
+      </div>
+      <div v-else class="empty-card">订单未生成波次，暂无可查看路径。</div>
+    </section>
+
+    <section class="detail-card">
+      <h3>订单明细</h3>
       <div v-if="currentRows.length" class="detail-table">
         <div class="detail-table__head">
-          <span>SKU</span>
-          <span>Product</span>
-          <span>Qty</span>
-          <span>Price</span>
-          <span>Amount</span>
-          <span>Remark</span>
+          <span>商品编码</span>
+          <span>商品</span>
+          <span>数量</span>
+          <span>单价</span>
+          <span>金额</span>
+          <span>备注</span>
         </div>
         <div v-for="(item, index) in currentRows" :key="item.id || index" class="detail-table__row">
           <span>{{ formatSkuCode(item.id, index) }}</span>
@@ -108,7 +143,7 @@
           <span :class="{ shortage: isShortage(item.remark) }">{{ formatRemark(item.remark) }}</span>
         </div>
       </div>
-      <div v-else class="empty-card">Current order has no rows.</div>
+      <div v-else class="empty-card">当前订单暂无明细。</div>
     </section>
   </div>
 </template>
@@ -120,7 +155,7 @@ export default {
     return {
       query: {
         keyword: "",
-        status: null,
+        statusCode: "",
         dateRange: [],
       },
       orders: [],
@@ -128,6 +163,9 @@ export default {
       selectedDepository: "",
       depositoryOptions: [],
       rowsByNumber: {},
+      waveTasksByNumber: {},
+      creatingWave: false,
+      finishingPick: false,
     };
   },
   computed: {
@@ -135,10 +173,46 @@ export default {
       return this.orders.find((item) => item.saleNumber === this.selectedNumber) || null;
     },
     currentRows() {
-      if (!this.selectedNumber) {
+      return this.selectedNumber ? this.rowsByNumber[this.selectedNumber] || [] : [];
+    },
+    currentWaveTasks() {
+      return this.selectedNumber ? this.waveTasksByNumber[this.selectedNumber] || [] : [];
+    },
+    routeSteps() {
+      if (!this.currentWaveTasks.length) {
         return [];
       }
-      return this.rowsByNumber[this.selectedNumber] || [];
+      const first = this.currentWaveTasks[0] || {};
+      if (Array.isArray(first.routeLocations) && first.routeLocations.length) {
+        return first.routeLocations;
+      }
+      const sequence = String(first.routeSequence || "");
+      if (!sequence) {
+        return [];
+      }
+      return sequence
+        .split("->")
+        .map((x) => x.trim())
+        .filter((x) => !!x);
+    },
+    canCreateWave() {
+      return !!this.currentOrder && ["WAITING_WAVE", "PARTIAL_SHORTAGE"].includes(this.currentOrder.statusCode);
+    },
+    canReplanWave() {
+      return !!this.currentOrder && this.currentOrder.statusCode === "PICKING";
+    },
+    canFinishPick() {
+      return !!this.currentOrder && this.currentOrder.statusCode === "PICKING";
+    },
+  },
+  watch: {
+    selectedNumber: {
+      immediate: true,
+      handler(val) {
+        if (val) {
+          this.loadPickPath(val);
+        }
+      },
     },
   },
   mounted() {
@@ -152,7 +226,7 @@ export default {
     formatSkuCode(value, index) {
       const fallback = 1000 + Number(index || 0);
       const raw = value || fallback;
-      return `SKU-${String(raw).padStart(4, "0")}`;
+      return `商品-${String(raw).padStart(4, "0")}`;
     },
     statusClass(statusCode) {
       if (statusCode === "COMPLETED") return "is-done";
@@ -160,36 +234,40 @@ export default {
       if (statusCode === "PARTIAL_SHORTAGE") return "is-warning";
       return "";
     },
+    statusText(statusCode, fallback) {
+      if (statusCode === "COMPLETED") return "已完成";
+      if (statusCode === "PICKING") return "拣货中";
+      if (statusCode === "PARTIAL_SHORTAGE") return "部分缺货";
+      if (statusCode === "WAITING_WAVE") return "待生成波次";
+      return fallback || "-";
+    },
     isShortage(remark) {
       return !!remark && (String(remark).includes("PARTIAL_SHORTAGE") || String(remark).includes("Partial shortage"));
     },
     formatRemark(remark) {
       if (!remark) return "-";
-      if (this.isShortage(remark)) return "Partial shortage";
+      if (this.isShortage(remark)) return "部分缺货";
       return remark;
     },
     resetQuery() {
-      this.query = {
-        keyword: "",
-        status: null,
-        dateRange: [],
-      };
+      this.query = { keyword: "", statusCode: "", dateRange: [] };
       this.refreshAll();
     },
     refreshAll() {
-      Promise.all([this.loadWaveOrders(), this.loadOrderRows()]);
+      Promise.all([this.loadWaveOrders(), this.loadOrderRows()]).then(() => {
+        if (this.selectedNumber) {
+          this.loadPickPath(this.selectedNumber);
+        }
+      });
     },
     loadWaveOrders() {
       return this.$http.get("/sale/waveList").then((res) => {
         let list = res.data.data || [];
         if (this.query.keyword) {
-          list = list.filter((item) => String(item.saleNumber || "").includes(this.query.keyword));
+          list = list.filter((item) => String(item.saleNumber || "").includes(this.query.keyword.trim()));
         }
-        if (this.query.status !== null && this.query.status !== undefined) {
-          list = list.filter((item) => {
-            const statusNum = item.statusCode === "COMPLETED" ? 0 : 1;
-            return statusNum === this.query.status;
-          });
+        if (this.query.statusCode) {
+          list = list.filter((item) => item.statusCode === this.query.statusCode);
         }
         if (this.query.dateRange && this.query.dateRange.length === 2) {
           const [startDate, endDate] = this.query.dateRange;
@@ -210,14 +288,7 @@ export default {
       const [startDate, endDate] = this.query.dateRange || [];
       return this.$http
         .get("/sale/list", {
-          params: {
-            pageNum: 1,
-            pageSize: 500,
-            keyword: this.query.keyword,
-            status: this.query.status,
-            startDate,
-            endDate,
-          },
+          params: { pageNum: 1, pageSize: 500, keyword: this.query.keyword, startDate, endDate },
         })
         .then((res) => {
           const rows = (res.data.data && res.data.data.list) || [];
@@ -226,6 +297,16 @@ export default {
             groups[item.saleNumber].push(item);
             return groups;
           }, {});
+        });
+    },
+    loadPickPath(saleNumber) {
+      this.$http
+        .get("/sale/pickPath", { params: { saleNumber } })
+        .then((res) => {
+          this.$set(this.waveTasksByNumber, saleNumber, (res.data && res.data.data) || []);
+        })
+        .catch(() => {
+          this.$set(this.waveTasksByNumber, saleNumber, []);
         });
     },
     loadDepositories() {
@@ -237,55 +318,67 @@ export default {
       const formData = new FormData();
       formData.append("file", option.file);
       this.$http
-        .post("/sale/importExcel", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        })
+        .post("/sale/importExcel", formData, { headers: { "Content-Type": "multipart/form-data" } })
         .then((res) => {
           if (res.data.code === 200) {
             const data = res.data.data || {};
-            this.$message.success(`Imported: success ${data.success || 0}, partial shortage ${data.partialShortage || 0}`);
+            this.$message.success(`导入完成：成功${data.success || 0}，部分缺货${data.partialShortage || 0}`);
             this.refreshAll();
           } else {
-            this.$message.error(res.data.message || "Import failed");
+            this.$message.error(res.data.message || "导入失败");
           }
           option.onSuccess(res.data);
         })
         .catch((err) => {
           option.onError(err);
-          this.$message.error("Import failed");
+          this.$message.error("导入失败");
         });
     },
-    handleCreateWave() {
-      if (!this.currentOrder) return;
+    handleCreateWave(forceReplan) {
+      if (!this.currentOrder || this.creatingWave) return;
       const depositoryName = this.selectedDepository || this.currentOrder.depository;
       if (!depositoryName) {
-        this.$message.warning("Please select depository first");
+        this.$message.warning("请先选择仓库");
         return;
       }
+      this.creatingWave = true;
       this.$http
         .post("/sale/createWave", null, {
-          params: { saleNumber: this.currentOrder.saleNumber, depositoryName },
+          params: { saleNumber: this.currentOrder.saleNumber, depositoryName, forceReplan: !!forceReplan },
         })
         .then((res) => {
           if (res.data.code === 200) {
-            this.$message.success("Wave created, picking started");
+            this.$message.success(forceReplan ? "波次已重排" : "波次已生成，进入拣货中");
             this.refreshAll();
           } else {
-            this.$message.error(res.data.message || "Create failed");
+            this.$message.error(res.data.message || "处理失败");
           }
+        })
+        .catch(() => {
+          this.$message.error(forceReplan ? "重排波次请求失败" : "生成波次请求失败");
+        })
+        .finally(() => {
+          this.creatingWave = false;
         });
     },
     handleFinishPick() {
-      if (!this.currentOrder) return;
+      if (!this.currentOrder || this.finishingPick) return;
+      this.finishingPick = true;
       this.$http
         .post("/sale/finishPick", null, { params: { saleNumber: this.currentOrder.saleNumber } })
         .then((res) => {
           if (res.data.code === 200) {
-            this.$message.success("Picking finished, order updated");
+            this.$message.success("拣货完成，订单已更新");
             this.refreshAll();
           } else {
-            this.$message.error(res.data.message || "Process failed");
+            this.$message.error(res.data.message || "处理失败");
           }
+        })
+        .catch(() => {
+          this.$message.error("完成拣货请求失败");
+        })
+        .finally(() => {
+          this.finishingPick = false;
         });
     },
   },
@@ -301,6 +394,7 @@ export default {
 .query-date { width: 280px; }
 .plain-btn { height: 34px; padding: 0 14px; border: 1px solid #e7ddce; border-radius: 999px; background: #fff; color: #69726d; cursor: pointer; }
 .plain-btn--primary { border-color: #9dc8bc; color: #2f7d72; }
+.plain-btn--warning { border-color: #e6b165; color: #8e5f1d; }
 .plain-btn--success { border-color: #99c89f; color: #2a7b51; }
 .plain-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
 .detail-meta { display: grid; gap: 12px; }
@@ -312,10 +406,21 @@ export default {
 .status-pill.is-picking { background: #fff1d9; color: #bb8532; }
 .status-pill.is-warning { background: #ffe2de; color: #c65d42; }
 .detail-card h3 { margin: 0 0 12px; color: #21303e; font-size: 22px; }
+.wave-view { display: grid; gap: 10px; }
+.wave-summary { display: flex; flex-wrap: wrap; gap: 14px; color: #5f6866; font-size: 13px; }
+.path-board { border: 1px solid #dbe9e4; border-radius: 14px; background: linear-gradient(135deg, #f6fffb 0%, #eef8f6 100%); padding: 12px; }
+.path-board__title { font-size: 13px; font-weight: 700; color: #2f6f62; margin-bottom: 10px; }
+.path-board__scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.path-node { min-width: 130px; border: 1px solid #cde5dd; border-radius: 12px; background: #fff; padding: 8px 10px; position: relative; }
+.path-node::after { content: "→"; position: absolute; right: -10px; top: 50%; transform: translateY(-50%); color: #79a79a; font-weight: 700; }
+.path-node:last-child::after { content: ""; }
+.path-node__index { width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 999px; background: #2fa487; color: #fff; font-size: 12px; margin-bottom: 6px; }
+.path-node__name { font-size: 13px; color: #2f4340; font-weight: 700; }
 .detail-table { display: grid; gap: 8px; }
 .detail-table__head, .detail-table__row { display: grid; grid-template-columns: 0.9fr 1.2fr 0.6fr 0.7fr 0.8fr 0.8fr; gap: 10px; font-size: 13px; }
 .detail-table__head { color: #9b9b94; font-weight: 700; }
 .detail-table__row { padding-top: 10px; border-top: 1px solid #f1eade; color: #56605d; }
+.wave-head, .wave-row { grid-template-columns: 0.4fr 1fr 1.2fr 0.7fr 0.9fr; }
 .empty-card { color: #93948d; font-size: 13px; }
 .shortage { color: #c65d42; font-weight: 700; }
 </style>

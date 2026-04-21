@@ -41,6 +41,6 @@ public interface CkDepositoryOutService {
     /**
      * 通过编号查询 source_number
      */
-    List<CkmdDepositoryOut> getRowInfoByPurchaseNumber(int number);
+    List<CkmdDepositoryOut> getRowInfoByPurchaseNumber(Long number);
 
 }

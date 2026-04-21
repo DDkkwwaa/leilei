@@ -55,8 +55,8 @@
       <div class="section-head">
         <h3>销售退货列表</h3>
         <div class="list-actions">
-          <el-input v-model="dataform.select" clearable placeholder="搜索销售单号" @keyup.enter.native="getDataList"></el-input>
-          <button type="button" class="plain-btn" @click="getDataList">查询</button>
+          <el-input v-model="dataform.select" clearable placeholder="搜索销售单号" @keyup.enter.native="searchData"></el-input>
+          <button type="button" class="plain-btn" @click="searchData">查询</button>
         </div>
       </div>
 
@@ -141,6 +141,10 @@ export default {
     this.getSaleOrder();
   },
   methods: {
+    searchData() {
+      this.pageIndex = 1;
+      this.getDataList();
+    },
     startCreate() {
       this.resetForm();
     },

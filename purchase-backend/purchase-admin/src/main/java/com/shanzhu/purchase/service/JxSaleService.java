@@ -54,6 +54,8 @@ public interface JxSaleService {
 
     int createWave(String saleNumber, String depositoryName);
 
+    int createWave(String saleNumber, String depositoryName, boolean forceReplan);
+
     int finishPick(String saleNumber);
 
     int updateStatusBySaleNumber(String saleNumber, Integer status);

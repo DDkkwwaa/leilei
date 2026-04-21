@@ -2,56 +2,56 @@
   <div>
     <el-card class="box-card">
       <el-form :inline="true" :model="queryForm">
-        <el-form-item label="Keyword">
-          <el-input v-model="queryForm.keyword" placeholder="operator / bizNo / content" clearable />
+        <el-form-item label="关键字">
+          <el-input v-model="queryForm.keyword" placeholder="操作人 / 业务单号 / 内容" clearable />
         </el-form-item>
-        <el-form-item label="Operator">
-          <el-input v-model="queryForm.operator" placeholder="operator" clearable />
+        <el-form-item label="操作人">
+          <el-input v-model="queryForm.operator" placeholder="请输入操作人" clearable />
         </el-form-item>
-        <el-form-item label="Action">
-          <el-select v-model="queryForm.actionType" clearable placeholder="All">
-            <el-option label="Login" value="LOGIN" />
-            <el-option label="Wave Create" value="WAVE_CREATE" />
-            <el-option label="Pick Finish" value="PICK_FINISH" />
-            <el-option label="Inbound Audit" value="INBOUND" />
-            <el-option label="Outbound Audit" value="OUTBOUND" />
-            <el-option label="Order Status Update" value="ORDER_STATUS_UPDATE" />
-            <el-option label="Order Import" value="ORDER_IMPORT" />
-            <el-option label="Pick Scan" value="PICK_SCAN" />
+        <el-form-item label="动作类型">
+          <el-select v-model="queryForm.actionType" clearable placeholder="全部">
+            <el-option label="登录" value="LOGIN" />
+            <el-option label="生成波次" value="WAVE_CREATE" />
+            <el-option label="完成拣货" value="PICK_FINISH" />
+            <el-option label="入库审核" value="INBOUND" />
+            <el-option label="出库审核" value="OUTBOUND" />
+            <el-option label="订单状态更新" value="ORDER_STATUS_UPDATE" />
+            <el-option label="订单导入" value="ORDER_IMPORT" />
+            <el-option label="扫码拣货" value="PICK_SCAN" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Date Range">
+        <el-form-item label="日期范围">
           <el-date-picker
             v-model="queryForm.dateRange"
             type="daterange"
             value-format="yyyy-MM-dd"
-            range-separator="to"
-            start-placeholder="start"
-            end-placeholder="end"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
             clearable
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="search">Search</el-button>
-          <el-button @click="reset">Reset</el-button>
+          <el-button type="primary" @click="search">查询</el-button>
+          <el-button @click="reset">重置</el-button>
         </el-form-item>
       </el-form>
 
       <el-table v-loading="dataListLoading" :data="dataList" style="width: 100%">
         <el-table-column prop="id" label="ID" width="90" />
-        <el-table-column prop="operator" label="Operator" width="140" />
-        <el-table-column label="Action" width="160">
+        <el-table-column prop="operator" label="操作人" width="140" />
+        <el-table-column label="动作类型" width="160">
           <template slot-scope="scope">
             {{ actionTypeText(scope.row.actionType) }}
           </template>
         </el-table-column>
-        <el-table-column prop="bizType" label="Biz Type" width="120" />
-        <el-table-column prop="bizNo" label="Biz No" width="180" show-overflow-tooltip />
-        <el-table-column prop="content" label="Content" min-width="220" show-overflow-tooltip />
-        <el-table-column prop="requestPath" label="Path" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="requestMethod" label="Method" width="100" />
+        <el-table-column prop="bizType" label="业务类型" width="120" />
+        <el-table-column prop="bizNo" label="业务单号" width="180" show-overflow-tooltip />
+        <el-table-column prop="content" label="内容" min-width="220" show-overflow-tooltip />
+        <el-table-column prop="requestPath" label="请求路径" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="requestMethod" label="方法" width="100" />
         <el-table-column prop="ip" label="IP" width="140" />
-        <el-table-column label="Time" width="180">
+        <el-table-column label="时间" width="180">
           <template slot-scope="scope">
             <span>{{ formatTime(scope.row.createTime) }}</span>
           </template>
@@ -74,14 +74,14 @@
 
 <script>
 const ACTION_TYPE_TEXT = {
-  LOGIN: "Login",
-  WAVE_CREATE: "Wave Create",
-  PICK_FINISH: "Pick Finish",
-  INBOUND: "Inbound Audit",
-  OUTBOUND: "Outbound Audit",
-  ORDER_STATUS_UPDATE: "Order Status Update",
-  ORDER_IMPORT: "Order Import",
-  PICK_SCAN: "Pick Scan",
+  LOGIN: "登录",
+  WAVE_CREATE: "生成波次",
+  PICK_FINISH: "完成拣货",
+  INBOUND: "入库审核",
+  OUTBOUND: "出库审核",
+  ORDER_STATUS_UPDATE: "订单状态更新",
+  ORDER_IMPORT: "订单导入",
+  PICK_SCAN: "扫码拣货",
 };
 
 export default {

@@ -45,7 +45,7 @@
       <h3>明细行</h3>
       <div v-if="currentOrder" class="detail-table">
         <div class="detail-table__head">
-          <span>SKU</span>
+          <span>商品编码</span>
           <span>商品</span>
           <span>数量</span>
           <span>单价</span>
@@ -87,7 +87,7 @@ export default {
     formatSkuCode(value, index) {
       const fallback = 1000 + Number(index || 0);
       const raw = value || fallback;
-      return `SKU-${String(raw).padStart(4, "0")}`;
+      return `商品-${String(raw).padStart(4, "0")}`;
     },
     loadOrders() {
       this.$http

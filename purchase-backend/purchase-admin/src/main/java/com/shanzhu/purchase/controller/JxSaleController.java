@@ -216,22 +216,31 @@ public class JxSaleController {
     @RequestMapping(value = "/createWave", method = RequestMethod.POST)
     @ResponseBody
     public commonResult createWave(@RequestParam("saleNumber") String saleNumber,
-                                   @RequestParam("depositoryName") String depositoryName,
-                                   HttpServletRequest request) {
-        int result = saleService.createWave(saleNumber, depositoryName);
+                                    @RequestParam("depositoryName") String depositoryName,
+                                   @RequestParam(value = "forceReplan", defaultValue = "false") boolean forceReplan,
+                                    HttpServletRequest request) {
+        int result = saleService.createWave(saleNumber, depositoryName, forceReplan);
         if (result == 1) {
             operationLogService.record(null, "WAVE_CREATE", "SALE", saleNumber,
-                    "Create wave and dispatch picking, depository=" + depositoryName, request);
+                    (forceReplan ? "Force replan wave, " : "Create wave and dispatch picking, ")
+                            + "depository=" + depositoryName,
+                    request);
             return commonResult.success("Success");
         }
         if (result == 2) {
             return commonResult.failed("Wave already exists");
+        }
+        if (result == 7) {
+            return commonResult.failed("Current wave has started or completed, cannot replan");
         }
         if (result == 4) {
             return commonResult.failed("Invalid params");
         }
         if (result == 5) {
             return commonResult.failed("Order not found");
+        }
+        if (result == 3) {
+            return commonResult.failed("Stock not enough");
         }
         return commonResult.failed("Stock not enough or create failed");
     }
@@ -270,6 +279,9 @@ public class JxSaleController {
         }
         if (result == 2) {
             return commonResult.failed("No executable wave task");
+        }
+        if (result == 6) {
+            return commonResult.failed("Stock record missing for selected depository");
         }
         if (result == 4) {
             return commonResult.failed("Invalid params");

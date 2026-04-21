@@ -2,12 +2,15 @@
   <div class="entity-page">
     <section class="entity-card entity-card--form">
       <div class="section-head">
-        <h3>{{ dataDialogForm.id ? "编辑商品" : "新增商品" }}</h3>
+        <h3>{{ isShopCreateMode ? "新增商品" : "编辑商品" }}</h3>
         <div class="head-actions">
-          <button type="button" class="plain-btn" @click="startCreate">新增商品</button>
+          <button type="button" class="primary-btn" :class="{ active: isShopCreateMode }" @click="startCreate">新增商品</button>
           <button type="button" class="plain-btn" @click="resetForm">清空表单</button>
         </div>
       </div>
+      <p class="mode-tip" :class="{ create: isShopCreateMode, edit: !isShopCreateMode }">
+        {{ isShopCreateMode ? "当前是新增商品模式，请填写信息后保存。" : "当前是编辑商品模式，保存后将覆盖原有数据。" }}
+      </p>
 
       <el-form ref="shopForm" :model="dataDialogForm" :rules="rules" label-position="top" class="entity-form">
         <div class="form-grid">
@@ -37,7 +40,7 @@
         </el-form-item>
 
         <el-button type="primary" class="save-btn" @click="handleSubmitFormData('shopForm')">
-          {{ dataDialogForm.id ? "保存修改" : "保存商品" }}
+          {{ isShopCreateMode ? "保存商品" : "保存修改" }}
         </el-button>
       </el-form>
     </section>
@@ -88,15 +91,18 @@
       <div class="section-head">
         <h3>商品分类管理</h3>
         <div class="head-actions">
-          <button type="button" class="plain-btn" @click="resetTypeForm">新增分类</button>
+          <button type="button" class="primary-btn" :class="{ active: isTypeCreateMode }" @click="resetTypeForm">新增分类</button>
         </div>
       </div>
+      <p class="mode-tip" :class="{ create: isTypeCreateMode, edit: !isTypeCreateMode }">
+        {{ isTypeCreateMode ? "当前是新增分类模式。" : "当前是编辑分类模式，保存后将更新该分类。" }}
+      </p>
 
       <div class="type-form">
         <el-input v-model="typeForm.shopType" placeholder="请输入分类名称"></el-input>
         <el-input v-model="typeForm.info" placeholder="请输入分类描述"></el-input>
         <button type="button" class="plain-btn" :disabled="typeSubmitting" @click="saveType">
-          {{ typeSubmitting ? "保存中..." : typeForm.id ? "更新分类" : "保存分类" }}
+          {{ typeSubmitting ? "保存中..." : isTypeCreateMode ? "保存分类" : "更新分类" }}
         </button>
       </div>
 
@@ -171,6 +177,12 @@ export default {
       }
       return `商品-${this.draftCodeSeed || "草稿"}`;
     },
+    isShopCreateMode() {
+      return !this.dataDialogForm.id;
+    },
+    isTypeCreateMode() {
+      return !this.typeForm.id;
+    },
   },
   mounted() {
     this.refreshDraftCode();
@@ -225,7 +237,7 @@ export default {
         this.$http
           .post("/shop/add", this.dataDialogForm)
           .then(() => {
-            this.$message.success(this.dataDialogForm.id ? "商品已更新" : "商品已创建");
+            this.$message.success(this.isShopCreateMode ? "商品已创建" : "商品已更新");
             this.resetForm();
             this.getDataList();
           })
@@ -302,7 +314,7 @@ export default {
         })
         .then((res) => {
           if (res.data.code === 200) {
-            this.$message.success(this.typeForm.id ? "分类已更新" : "分类已新增");
+            this.$message.success(this.isTypeCreateMode ? "分类已新增" : "分类已更新");
             this.resetTypeForm();
             this.getShopTypeList();
           } else {
@@ -344,8 +356,8 @@ export default {
           },
         })
         .then((res) => {
-          this.dataList = res.data.data.list || [];
-          this.totalPage = res.data.data.total || 0;
+          this.dataList = (res.data.data && res.data.data.list) || [];
+          this.totalPage = (res.data.data && res.data.data.total) || 0;
         })
         .finally(() => {
           this.dataListLoading = false;
@@ -375,7 +387,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .head-actions {
@@ -391,6 +403,7 @@ export default {
 }
 
 .plain-btn,
+.primary-btn,
 .danger-btn {
   height: 34px;
   padding: 0 14px;
@@ -401,8 +414,41 @@ export default {
   cursor: pointer;
 }
 
+.primary-btn {
+  border-color: #67c7b0;
+  background: linear-gradient(135deg, #e8fbf4 0%, #d2f3e8 100%);
+  color: #1d7d66;
+  font-weight: 700;
+}
+
+.primary-btn.active {
+  border-color: #2ca583;
+  box-shadow: 0 0 0 3px rgba(44, 165, 131, 0.14);
+}
+
 .danger-btn {
   color: #b55b52;
+}
+
+.mode-tip {
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px solid transparent;
+}
+
+.mode-tip.create {
+  color: #176950;
+  background: #ecfaf5;
+  border-color: #c9ebdf;
+}
+
+.mode-tip.edit {
+  color: #8a5a19;
+  background: #fff8eb;
+  border-color: #f0e0be;
 }
 
 .entity-form /deep/ .el-form-item {

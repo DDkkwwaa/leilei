@@ -9,7 +9,7 @@
         <section class="page-hero">
           <div class="page-hero__copy">
             <h1>{{ pageMeta.title }}</h1>
-            <p>{{ pageMeta.description }}</p>
+            <p v-if="!isIndexPage">{{ pageMeta.description }}</p>
           </div>
           <Header />
         </section>
@@ -28,8 +28,8 @@ import Header from "@/common/Header.vue";
 
 const metaMap = {
   "/index": {
-    title: "运营驾驶舱",
-    description: "围绕 \"人·货·场·单\" 构建采购、库存与销售的一体化管控视图。",
+    title: "数智情景下的前置仓库信息系统",
+    description: "",
   },
   "/supplier": {
     title: "供应商管理",
@@ -49,19 +49,19 @@ const metaMap = {
   },
   "/purchase": {
     title: "采购单详情",
-    description: "按单号查看采购摘要与明细，不再继续使用旧式列表弹窗。",
+    description: "按单号查看采购摘要与明细。",
   },
   "/purchaseExit": {
     title: "采购退货",
-    description: "维护采购退货单、退货原因和金额，职责上独立于采购主单。",
+    description: "维护采购退货单、退货原因和金额。",
   },
   "/sale": {
     title: "销售单详情",
-    description: "按单号查看销售摘要与明细，统一销售业务阅读路径。",
+    description: "按单号查看销售摘要与明细。",
   },
   "/saleExit": {
     title: "销售退货",
-    description: "集中处理销售退货、退款原因和处理状态，避免继续挤在销售正向流程里。",
+    description: "集中处理销售退货、退款原因和处理状态。",
   },
   "/stockList": {
     title: "库存台账",
@@ -73,7 +73,11 @@ const metaMap = {
   },
   "/depositoryOut": {
     title: "出库清单",
-    description: "维护出库申请、审核与库存扣减流程，并与入库页保持同一套布局职责。",
+    description: "维护出库申请、审核与库存扣减流程。",
+  },
+  "/syscfg": {
+    title: "个人中心",
+    description: "查看当前登录管理员资料，并完成账号密码维护。",
   },
 };
 
@@ -84,10 +88,13 @@ export default {
     Header,
   },
   computed: {
+    isIndexPage() {
+      return this.$route.path === "/index";
+    },
     pageMeta() {
       return (
         metaMap[this.$route.path] || {
-          title: this.$route.name || "供应链后台",
+          title: this.$route.name || "前置仓管理后台",
           description: "保持统一的业务管理视图与操作体验。",
         }
       );
@@ -100,7 +107,10 @@ export default {
 .layout-shell {
   min-height: 100vh;
   padding: 0;
-  background: linear-gradient(180deg, #f7f3ec 0%, #f4efe6 100%);
+  background:
+    radial-gradient(180px 260px at 8% 10%, rgba(173, 216, 255, 0.24), transparent 70%),
+    radial-gradient(220px 300px at 92% 16%, rgba(197, 255, 229, 0.2), transparent 70%),
+    linear-gradient(180deg, #edf3fb 0%, #e8eff8 100%);
 }
 
 .layout-frame {
@@ -112,9 +122,10 @@ export default {
 
 .layout-aside {
   min-height: 100%;
-  background: #ffffff;
-  border-right: 1px solid #e9e0d1;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.66), rgba(245, 250, 255, 0.36));
+  border-right: 1px solid rgba(255, 255, 255, 0.68);
+  box-shadow: 6px 0 20px rgba(36, 58, 94, 0.1);
+  backdrop-filter: blur(14px) saturate(1.18);
 }
 
 .layout-main {
@@ -129,9 +140,10 @@ export default {
   justify-content: space-between;
   gap: 24px;
   padding: 16px 24px;
-  background: #ffffff;
-  border-bottom: 1px solid #e9e0d1;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.72), rgba(244, 250, 255, 0.46));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.66);
+  box-shadow: 0 8px 20px rgba(36, 58, 94, 0.08);
+  backdrop-filter: blur(12px) saturate(1.15);
   margin-bottom: 0;
 }
 
@@ -154,6 +166,7 @@ export default {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0));
 }
 
 @media (max-width: 1080px) {

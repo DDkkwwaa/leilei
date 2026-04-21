@@ -9,6 +9,6 @@ public interface JxPurchaseExitDao {
 
     List<JxmdPurchaseExit> selectNumber(@Param("sourceNumber") Long sourceNumber);
 
-    List<JxmdPurchaseExit> getByField(String checkNumber);
+    List<JxmdPurchaseExit> getByField(@Param("checkNumber") String checkNumber);
 
 }

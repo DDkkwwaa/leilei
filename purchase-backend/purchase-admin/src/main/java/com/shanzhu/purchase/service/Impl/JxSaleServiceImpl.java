@@ -7,6 +7,7 @@ import com.shanzhu.purchase.mapper.CkmdStockMapper;
 import com.shanzhu.purchase.mapper.JxmdSaleExitMapper;
 import com.shanzhu.purchase.mapper.JxmdSaleMapper;
 import com.shanzhu.purchase.model.CkmdDepositoryOut;
+import com.shanzhu.purchase.model.CkmdDepositoryOutExample;
 import com.shanzhu.purchase.model.CkmdStock;
 import com.shanzhu.purchase.model.CkmdStockExample;
 import com.shanzhu.purchase.model.JxmdSale;
@@ -19,13 +20,16 @@ import com.shanzhu.purchase.util.UUidUtils;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -300,6 +304,12 @@ public class JxSaleServiceImpl implements JxSaleService {
 
     @Override
     public int createWave(String saleNumber, String depositoryName) {
+        return createWave(saleNumber, depositoryName, false);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int createWave(String saleNumber, String depositoryName, boolean forceReplan) {
         if (StrUtil.isBlank(saleNumber) || StrUtil.isBlank(depositoryName)) {
             return 4;
         }
@@ -307,16 +317,34 @@ public class JxSaleServiceImpl implements JxSaleService {
         if (saleRows.isEmpty()) {
             return 5;
         }
-        if (!getOutRowsBySaleNumber(saleNumber).isEmpty()) {
-            return 2;
+        List<CkmdDepositoryOut> outRows = getOutRowsBySaleNumber(saleNumber);
+        if (!outRows.isEmpty()) {
+            if (!forceReplan) {
+                return 2;
+            }
+            for (CkmdDepositoryOut row : outRows) {
+                if (row != null && row.getStatus() != null && row.getStatus() == 0) {
+                    return 7;
+                }
+            }
         }
+
         for (JxmdSale sale : saleRows) {
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("depositoryName", depositoryName);
-            payload.put("saleList", sale);
-            int code = this.outSaleAndCheck(payload);
-            if (code != 0) {
-                return code;
+            if (!hasEnoughStockForWaveRow(sale, depositoryName)) {
+                return 3;
+            }
+        }
+
+        if (!outRows.isEmpty() && forceReplan) {
+            CkmdDepositoryOutExample deleteExample = new CkmdDepositoryOutExample();
+            deleteExample.createCriteria().andSourceNumberEqualTo(parseLongQuietly(saleNumber));
+            depositoryOutMapper.deleteByExample(deleteExample);
+        }
+
+        for (JxmdSale sale : saleRows) {
+            int insertResult = insertWaveOutRow(sale, depositoryName);
+            if (insertResult <= 0) {
+                throw new IllegalStateException("create wave row failed");
             }
         }
         return 1;
@@ -331,13 +359,21 @@ public class JxSaleServiceImpl implements JxSaleService {
         if (outRows.isEmpty()) {
             return 2;
         }
+        boolean hasPending = false;
         for (CkmdDepositoryOut out : outRows) {
             if (out.getStatus() != null && out.getStatus() == 1) {
+                hasPending = true;
+                if (!hasStockRow(out.getShopName(), out.getDepository())) {
+                    return 6;
+                }
                 int checkResult = depositoryOutService.checkById(out.getId());
                 if (checkResult <= 0) {
                     return 3;
                 }
             }
+        }
+        if (!hasPending) {
+            return 2;
         }
         JxmdSale update = new JxmdSale();
         update.setStatus(0);
@@ -363,25 +399,51 @@ public class JxSaleServiceImpl implements JxSaleService {
     public List<Map<String, Object>> pickPath(String saleNumber) {
         List<Map<String, Object>> result = new ArrayList<>();
         List<CkmdDepositoryOut> outRows = getOutRowsBySaleNumber(saleNumber);
-        Map<String, Map<String, Object>> merged = new HashMap<>();
+        Map<String, Map<String, Object>> merged = new LinkedHashMap<>();
         for (CkmdDepositoryOut out : outRows) {
             if (out == null || out.getShopName() == null) {
                 continue;
             }
-            String key = out.getDepository() + "::" + out.getShopName();
+            String location = resolveLocation(out.getShopName(), out.getDepository());
+            String key = location + "::" + out.getShopName();
             Map<String, Object> row = merged.computeIfAbsent(key, k -> {
                 Map<String, Object> obj = new HashMap<>();
                 obj.put("depository", out.getDepository());
                 obj.put("shopName", out.getShopName());
                 obj.put("needQuantity", 0L);
-                obj.put("location", resolveLocation(out.getShopName(), out.getDepository()));
+                obj.put("location", location);
                 return obj;
             });
             long now = ((Number) row.get("needQuantity")).longValue();
             row.put("needQuantity", now + (out.getShopNumber() == null ? 0L : out.getShopNumber()));
         }
+
+        List<String> uniqueLocations = new ArrayList<>();
+        for (Map<String, Object> row : merged.values()) {
+            String location = String.valueOf(row.get("location"));
+            if (!uniqueLocations.contains(location)) {
+                uniqueLocations.add(location);
+            }
+        }
+        uniqueLocations.sort(this::compareLocation);
+        Map<String, Integer> locationOrderMap = new HashMap<>();
+        for (int i = 0; i < uniqueLocations.size(); i++) {
+            locationOrderMap.put(uniqueLocations.get(i), i + 1);
+        }
+        String routeSequence = String.join(" -> ", uniqueLocations);
+
         result.addAll(merged.values());
-        result.sort((a, b) -> compareLocation(String.valueOf(a.get("location")), String.valueOf(b.get("location"))));
+        result.sort(Comparator
+                .comparing((Map<String, Object> x) -> locationOrderMap.getOrDefault(String.valueOf(x.get("location")), Integer.MAX_VALUE))
+                .thenComparing(x -> String.valueOf(x.get("shopName"))));
+
+        for (Map<String, Object> row : result) {
+            String location = String.valueOf(row.get("location"));
+            row.put("locationOrder", locationOrderMap.getOrDefault(location, 0));
+            row.put("locationCount", uniqueLocations.size());
+            row.put("routeSequence", routeSequence);
+            row.put("routeLocations", uniqueLocations);
+        }
         return result;
     }
 
@@ -396,7 +458,7 @@ public class JxSaleServiceImpl implements JxSaleService {
         if (sourceNumber == null) {
             return new ArrayList<>();
         }
-        return depositoryOutService.getRowInfoByPurchaseNumber(sourceNumber.intValue());
+        return depositoryOutService.getRowInfoByPurchaseNumber(sourceNumber);
     }
 
     private Long parseLongQuietly(String value) {
@@ -433,22 +495,69 @@ public class JxSaleServiceImpl implements JxSaleService {
     private int compareLocation(String a, String b) {
         String aa = a == null ? "" : a.trim();
         String bb = b == null ? "" : b.trim();
-        String ap = aa.replaceAll("[0-9]", "");
-        String bp = bb.replaceAll("[0-9]", "");
-        int pre = ap.compareToIgnoreCase(bp);
-        if (pre != 0) {
-            return pre;
+        List<String> ta = splitLocationTokens(aa);
+        List<String> tb = splitLocationTokens(bb);
+        int size = Math.min(ta.size(), tb.size());
+        for (int i = 0; i < size; i++) {
+            String xa = ta.get(i);
+            String xb = tb.get(i);
+            boolean na = isDigits(xa);
+            boolean nb = isDigits(xb);
+            if (na && nb) {
+                int cmp = Integer.compare(parseIntSafe(xa), parseIntSafe(xb));
+                if (cmp != 0) {
+                    return cmp;
+                }
+            } else {
+                int cmp = xa.compareToIgnoreCase(xb);
+                if (cmp != 0) {
+                    return cmp;
+                }
+            }
         }
-        return Integer.compare(parseFirstNumber(aa), parseFirstNumber(bb));
+        int lenCmp = Integer.compare(ta.size(), tb.size());
+        if (lenCmp != 0) {
+            return lenCmp;
+        }
+        return aa.compareToIgnoreCase(bb);
     }
 
-    private int parseFirstNumber(String value) {
-        String num = value == null ? "" : value.replaceAll("[^0-9]", "");
-        if (num.length() == 0) {
-            return 0;
+    private List<String> splitLocationTokens(String value) {
+        List<String> tokens = new ArrayList<>();
+        if (StrUtil.isBlank(value)) {
+            return tokens;
         }
+        StringBuilder current = new StringBuilder();
+        char[] chars = value.toCharArray();
+        for (char c : chars) {
+            if (Character.isLetterOrDigit(c)) {
+                current.append(c);
+            } else if (current.length() > 0) {
+                tokens.add(current.toString());
+                current.setLength(0);
+            }
+        }
+        if (current.length() > 0) {
+            tokens.add(current.toString());
+        }
+        return tokens;
+    }
+
+    private boolean isDigits(String value) {
+        if (StrUtil.isBlank(value)) {
+            return false;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            if (!Character.isDigit(value.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private int parseIntSafe(String value) {
         try {
-            return Integer.parseInt(num);
+            return Integer.parseInt(value);
         } catch (Exception ex) {
             return 0;
         }
@@ -466,5 +575,51 @@ public class JxSaleServiceImpl implements JxSaleService {
             total += stock.getQuantity() == null ? 0L : stock.getQuantity();
         }
         return total < saleNum;
+    }
+
+    private boolean hasStockRow(String shopName, String depository) {
+        if (StrUtil.isBlank(shopName) || StrUtil.isBlank(depository)) {
+            return false;
+        }
+        CkmdStockExample example = new CkmdStockExample();
+        example.createCriteria().andShopEqualTo(shopName).andDepositoryEqualTo(depository);
+        List<CkmdStock> list = stockMapper.selectByExample(example);
+        return list != null && !list.isEmpty();
+    }
+
+    private boolean hasEnoughStockForWaveRow(JxmdSale sale, String depositoryName) {
+        if (sale == null || StrUtil.isBlank(sale.getShop()) || sale.getNum() == null || StrUtil.isBlank(depositoryName)) {
+            return false;
+        }
+        CkmdStockExample stockExample = new CkmdStockExample();
+        stockExample.createCriteria()
+                .andDepositoryEqualTo(depositoryName)
+                .andShopEqualTo(sale.getShop());
+        List<CkmdStock> stockList = stockMapper.selectByExample(stockExample);
+        if (stockList == null || stockList.isEmpty()) {
+            return false;
+        }
+        CkmdStock stock = stockList.get(0);
+        return stock.getQuantity() != null && stock.getQuantity() >= sale.getNum();
+    }
+
+    private int insertWaveOutRow(JxmdSale sale, String depositoryName) {
+        CkmdDepositoryOut out = new CkmdDepositoryOut();
+        out.setSourceNumber(parseLongQuietly(sale.getSaleNumber()));
+        out.setOutId(Long.valueOf(UUidUtils.uuid()));
+        out.setDepository(depositoryName);
+        out.setShopName(sale.getShop());
+        out.setShopNumber(sale.getNum());
+        out.setShopPrice(sale.getPrice());
+        out.setTotalPrice(sale.getTotalPrice());
+        out.setSpecs(sale.getSpecs());
+        UsernamePasswordAuthenticationToken token =
+                (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        out.setOutUser(token == null ? "" : String.valueOf(token.getPrincipal()));
+        out.setShopSupplier(sale.getSupplier());
+        out.setStatus(1);
+        out.setOutInspection(1);
+        out.setCreateDate(LocalDateTime.now());
+        return depositoryOutMapper.insertSelective(out);
     }
 }

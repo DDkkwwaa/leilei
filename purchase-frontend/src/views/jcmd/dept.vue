@@ -8,7 +8,7 @@
 						<el-input v-model="selectDept.dept" clearable placeholder="请输入部门名称"></el-input>
 					</el-form-item>
 					<el-form-item>
-						<el-button type="primary" @click="getDataList">查询</el-button>
+						<el-button type="primary" @click="searchData">查询</el-button>
 						<!-- <el-button type="primary">增加</el-button> -->
 					</el-form-item>
 				</el-form>
@@ -73,6 +73,10 @@ export default {
 		}
 	},
 	methods: {
+		searchData() {
+			this.pageIndex = 1;
+			this.getDataList();
+		},
 		//每页显示几条
 		sizeChangeHandle(val) {
 			this.pageSize = val;

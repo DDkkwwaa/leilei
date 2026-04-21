@@ -14,7 +14,7 @@
           <el-form-item label="客户编码">
             <el-input :value="displayCustomerCode" disabled></el-input>
             <p class="field-tip">
-              {{ dataDialogForm.id ? "前端展示编码，后端仍使用实际ID。" : "当前为草稿编码，保存后生成正式展示编码。" }}
+              {{ dataDialogForm.id ? "前端展示编码，后端仍使用实际ID。" : " " }}
             </p>
           </el-form-item>
           <el-form-item label="客户名称" prop="name">
@@ -54,8 +54,8 @@
       <div class="section-head">
         <h3>客户列表</h3>
         <div class="list-actions">
-          <el-input v-model="dataForm.selectcustomer" clearable placeholder="搜索客户" @keyup.enter.native="getDataList"></el-input>
-          <button type="button" class="plain-btn" @click="getDataList">查询</button>
+          <el-input v-model="dataForm.selectcustomer" clearable placeholder="搜索客户" @keyup.enter.native="searchData"></el-input>
+          <button type="button" class="plain-btn" @click="searchData">查询</button>
         </div>
       </div>
 
@@ -145,6 +145,10 @@ export default {
     this.getDataList();
   },
   methods: {
+    searchData() {
+      this.pageIndex = 1;
+      this.getDataList();
+    },
     formatDisplayCode(prefix, value, pad = 3) {
       return `${prefix}-${String(value).padStart(pad, "0")}`;
     },
