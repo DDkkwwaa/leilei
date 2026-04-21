@@ -75,6 +75,7 @@
       <div class="detail-toolbar">
         <el-input v-model="analysisShopType" clearable placeholder="按品类筛选" class="query-input" />
         <button type="button" class="plain-btn" @click="loadAnalysis">查询</button>
+        <button type="button" class="plain-btn" @click="exportAnalysis">导出Excel</button>
       </div>
       <div class="ledger-table">
         <div class="ledger-table__head analysis-head">
@@ -162,6 +163,26 @@ export default {
         })
         .then((res) => {
           this.analysisList = res.data.data || [];
+        });
+    },
+    exportAnalysis() {
+      this.$http
+        .get("/stock/exportAnalysisExcel", {
+          params: {
+            shopType: this.analysisShopType,
+          },
+          responseType: "blob",
+        })
+        .then((res) => {
+          const blob = new Blob([res.data], { type: "application/vnd.ms-excel" });
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "stock_analysis.xls";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
         });
     },
   },

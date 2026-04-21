@@ -15,6 +15,7 @@
             <el-option label="完成拣货" value="PICK_FINISH" />
             <el-option label="入库审核" value="INBOUND" />
             <el-option label="出库审核" value="OUTBOUND" />
+            <el-option label="订单状态修改" value="ORDER_STATUS_UPDATE" />
           </el-select>
         </el-form-item>
         <el-form-item label="日期区间">
@@ -76,6 +77,7 @@ const ACTION_TYPE_TEXT = {
   PICK_FINISH: "完成拣货",
   INBOUND: "入库审核",
   OUTBOUND: "出库审核",
+  ORDER_STATUS_UPDATE: "订单状态修改",
 };
 
 export default {
