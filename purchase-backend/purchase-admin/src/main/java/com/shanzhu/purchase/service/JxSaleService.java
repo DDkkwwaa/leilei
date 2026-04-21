@@ -57,4 +57,6 @@ public interface JxSaleService {
     int finishPick(String saleNumber);
 
     int updateStatusBySaleNumber(String saleNumber, Integer status);
+
+    List<Map<String, Object>> pickPath(String saleNumber);
 }

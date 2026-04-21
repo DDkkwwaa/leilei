@@ -6,11 +6,11 @@ import com.shanzhu.purchase.util.commonResult;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.stereotype.Controller;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,15 +24,15 @@ import java.util.List;
 import java.util.Map;
 
 @Controller
-@Api(tags = "OperationLogController", description = "xt-操作日志")
-@Tag(name = "OperationLogController", description = "系统管理-操作日志")
+@Api(tags = "OperationLogController", description = "Operation log")
+@Tag(name = "OperationLogController", description = "System - Operation log")
 @RequestMapping("/operationLog")
 public class OperationLogController {
 
     @Resource
     private OperationLogService operationLogService;
 
-    @ApiOperation("分页查询操作日志")
+    @ApiOperation("Paged list of operation logs")
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     @ResponseBody
     public commonResult<commonPage<Map<String, Object>>> list(

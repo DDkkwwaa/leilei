@@ -2,38 +2,48 @@ package com.shanzhu.purchase.controller;
 
 import com.shanzhu.purchase.model.CkmdDepositoryOut;
 import com.shanzhu.purchase.service.CkDepositoryOutService;
+import com.shanzhu.purchase.service.OperationLogService;
 import com.shanzhu.purchase.util.commonPage;
 import com.shanzhu.purchase.util.commonResult;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @Controller
-@Api(value = "CkOutDepositoryController", description = "ck-4出库清单")
-@Tag(name = "CkOutDepositoryController", description = "系统管理-出库清单")
+@Api(value = "CkOutDepositoryController", description = "Outbound list")
+@Tag(name = "CkOutDepositoryController", description = "Warehouse - Outbound list")
 @RequestMapping("/depositoryOut")
 public class CkDepositoryOutController {
 
     @Resource
     private CkDepositoryOutService depositoryOutService;
 
-    @ApiOperation("添加仓库")
+    @Resource
+    private OperationLogService operationLogService;
+
+    @ApiOperation("Create outbound order")
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     @ResponseBody
-    public commonResult create(@RequestBody CkmdDepositoryOut CkmdDepositoryOut) {
-        int count = depositoryOutService.addOrUpdateDepositoryOut(CkmdDepositoryOut);
+    public commonResult create(@RequestBody CkmdDepositoryOut ckmdDepositoryOut) {
+        int count = depositoryOutService.addOrUpdateDepositoryOut(ckmdDepositoryOut);
         if (count > 0) {
-            return commonResult.success("成功");
+            return commonResult.success("Success");
         }
         return commonResult.failed();
     }
 
-    @ApiOperation("删除仓库清单")
+    @ApiOperation("Delete outbound order")
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
     @ResponseBody
     public commonResult delete(Long id) {
@@ -44,7 +54,7 @@ public class CkDepositoryOutController {
         return commonResult.failed();
     }
 
-    @ApiOperation("获取所有仓库")
+    @ApiOperation("List all outbound orders")
     @RequestMapping(value = "/listAll", method = RequestMethod.GET)
     @ResponseBody
     public commonResult<List<CkmdDepositoryOut>> listAll() {
@@ -52,7 +62,7 @@ public class CkDepositoryOutController {
         return commonResult.success(outList);
     }
 
-    @ApiOperation("根据角色名称分页获取仓库列表")
+    @ApiOperation("Paged list by keyword")
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     @ResponseBody
     public commonResult<commonPage<CkmdDepositoryOut>> list(
@@ -64,12 +74,12 @@ public class CkDepositoryOutController {
         return commonResult.success(commonPage.restPage(outList));
     }
 
-    @ApiOperation("修改仓库状态")
+    @ApiOperation("Update outbound status")
     @RequestMapping(value = "/updateStatus/{id}", method = RequestMethod.POST)
     @ResponseBody
-    public commonResult updateStatus(@PathVariable Long id, @RequestParam(value = "status") Integer OutInspection) {
+    public commonResult updateStatus(@PathVariable Long id, @RequestParam(value = "status") Integer outInspection) {
         CkmdDepositoryOut depositoryOut = new CkmdDepositoryOut();
-        depositoryOut.setOutInspection(OutInspection);
+        depositoryOut.setOutInspection(outInspection);
         int count = depositoryOutService.update(depositoryOut);
         if (count > 0) {
             return commonResult.success(count);
@@ -77,15 +87,16 @@ public class CkDepositoryOutController {
         return commonResult.failed();
     }
 
-    @ApiOperation(value = "出库清单-审核")
+    @ApiOperation(value = "Outbound audit")
     @RequestMapping(value = "/checkById", method = RequestMethod.POST)
     @ResponseBody
-    public commonResult checkById(@RequestParam(value = "id") Long id) {
+    public commonResult checkById(@RequestParam(value = "id") Long id, HttpServletRequest request) {
         int count = depositoryOutService.checkById(id);
         if (count > 0) {
+            operationLogService.record(null, "OUTBOUND", "OUTBOUND", String.valueOf(id),
+                    "Outbound audit completed", request);
             return commonResult.success(count);
         }
-        return commonResult.failed("库存不足");
+        return commonResult.failed("Insufficient stock");
     }
-
 }

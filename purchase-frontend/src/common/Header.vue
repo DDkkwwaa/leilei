@@ -1,38 +1,38 @@
 <template>
   <div class="header-actions">
     <button type="button" class="bell-pill" @click="goWarningPage">
-      <span class="bell-pill__icon">🔔</span>
-      <span class="bell-pill__text">预警</span>
+      <span class="bell-pill__icon">ALRT</span>
+      <span class="bell-pill__text">Warnings</span>
       <em v-if="warningCount > 0" class="bell-pill__badge">{{ warningCount > 99 ? "99+" : warningCount }}</em>
     </button>
 
     <el-dropdown trigger="click" @command="handleCommand">
       <button type="button" class="admin-pill">
-        <span class="admin-pill__icon">系</span>
+        <span class="admin-pill__icon">SYS</span>
         <span class="admin-pill__copy">
-          <small>系统管理员</small>
+          <small>System Admin</small>
           <strong>{{ username }}</strong>
         </span>
       </button>
       <el-dropdown-menu slot="dropdown">
-        <el-dropdown-item command="password">修改密码</el-dropdown-item>
+        <el-dropdown-item command="password">Change Password</el-dropdown-item>
       </el-dropdown-menu>
     </el-dropdown>
 
-    <button type="button" class="logout-pill" @click="handleCommand('logout')">退出登录</button>
+    <button type="button" class="logout-pill" @click="handleCommand('logout')">Logout</button>
 
-    <el-dialog title="修改密码" :visible.sync="dialogFormVisible" width="420px" @close="closeDialog">
-      <el-form ref="passwordForm" :model="updatePassword" :rules="passwordRules" label-width="90px">
-        <el-form-item label="原密码" prop="oldPassword">
-          <el-input v-model="updatePassword.oldPassword" type="password" placeholder="请输入原密码" clearable />
+    <el-dialog title="Change Password" :visible.sync="dialogFormVisible" width="420px" @close="closeDialog">
+      <el-form ref="passwordForm" :model="updatePassword" :rules="passwordRules" label-width="100px">
+        <el-form-item label="Old Password" prop="oldPassword">
+          <el-input v-model="updatePassword.oldPassword" type="password" placeholder="Please input old password" clearable />
         </el-form-item>
-        <el-form-item label="新密码" prop="newPassword">
-          <el-input v-model="updatePassword.newPassword" type="password" placeholder="请输入新密码" clearable />
+        <el-form-item label="New Password" prop="newPassword">
+          <el-input v-model="updatePassword.newPassword" type="password" placeholder="Please input new password" clearable />
         </el-form-item>
       </el-form>
       <div slot="footer">
-        <el-button @click="dialogFormVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmitFormData('passwordForm')">确定</el-button>
+        <el-button @click="dialogFormVisible = false">Cancel</el-button>
+        <el-button type="primary" @click="handleSubmitFormData('passwordForm')">Confirm</el-button>
       </div>
     </el-dialog>
   </div>
@@ -44,7 +44,7 @@ export default {
   data() {
     const checkPassword = (rule, value, callback) => {
       if (!value) {
-        callback(new Error("请输入原密码"));
+        callback(new Error("Please input old password"));
         return;
       }
 
@@ -52,12 +52,12 @@ export default {
         .post("/admin/checkPassword", this.updatePassword)
         .then((res) => {
           if (res.data.data === "false") {
-            callback(new Error("原密码输入错误"));
+            callback(new Error("Old password is incorrect"));
             return;
           }
           callback();
         })
-        .catch(() => callback(new Error("原密码校验失败")));
+        .catch(() => callback(new Error("Password validation failed")));
     };
 
     return {
@@ -72,7 +72,7 @@ export default {
       },
       passwordRules: {
         oldPassword: [{ validator: checkPassword, trigger: "blur" }],
-        newPassword: [{ required: true, message: "请输入新密码", trigger: "blur" }],
+        newPassword: [{ required: true, message: "Please input new password", trigger: "blur" }],
       },
     };
   },
@@ -113,16 +113,16 @@ export default {
         return;
       }
       if (command === "logout") {
-        this.$confirm("确认退出当前账号吗？", "提示", {
-          confirmButtonText: "确定",
-          cancelButtonText: "取消",
+        this.$confirm("Confirm logout?", "Confirm", {
+          confirmButtonText: "Yes",
+          cancelButtonText: "No",
           type: "warning",
         })
           .then(() => {
             this.$router.push("/login");
           })
           .catch(() => {
-            this.$message.info("已取消退出");
+            this.$message.info("Cancelled");
           });
       }
     },
@@ -137,7 +137,7 @@ export default {
           .then(() => {
             this.dialogFormVisible = false;
             this.closeDialog();
-            this.$message.success("密码修改成功");
+            this.$message.success("Password updated");
           })
           .finally(() => {
             this.dialogFormSubmitVisible = false;

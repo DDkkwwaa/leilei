@@ -2,27 +2,36 @@ package com.shanzhu.purchase.controller;
 
 import com.shanzhu.purchase.model.CkmdDepositoryIn;
 import com.shanzhu.purchase.service.CkDepositoryInService;
+import com.shanzhu.purchase.service.OperationLogService;
 import com.shanzhu.purchase.util.commonPage;
 import com.shanzhu.purchase.util.commonResult;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @Controller
-@Api(value = "CkController", description = "ck-4入库清单")
-@Tag(name = "CkDepositoryInController", description = "仓库管理-3入库清单")
+@Api(value = "CkController", description = "Inbound list")
+@Tag(name = "CkDepositoryInController", description = "Warehouse - Inbound list")
 @RequestMapping("/depositoryIn")
 public class CkDepositoryInController {
 
     @Resource
     private CkDepositoryInService depositoryInService;
 
-    @ApiOperation("添加入库单")
+    @Resource
+    private OperationLogService operationLogService;
+
+    @ApiOperation("Create inbound order")
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     @ResponseBody
     public commonResult create(@RequestBody CkmdDepositoryIn depositoryIn) {
@@ -33,7 +42,7 @@ public class CkDepositoryInController {
         return commonResult.failed();
     }
 
-    @ApiOperation("修改入库单")
+    @ApiOperation("Update inbound order")
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     @ResponseBody
     public commonResult update(@RequestBody CkmdDepositoryIn depositoryIn) {
@@ -44,18 +53,18 @@ public class CkDepositoryInController {
         return commonResult.failed();
     }
 
-    @ApiOperation("删除入库单")
+    @ApiOperation("Delete inbound order")
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
     @ResponseBody
     public commonResult delete(Long id) {
         int count = depositoryInService.delete(id);
         if (count > 0) {
-            return commonResult.success("成功");
+            return commonResult.success("Success");
         }
         return commonResult.failed();
     }
 
-    @ApiOperation("根据仓库名称分页获取入库单信息")
+    @ApiOperation("Paged list by keyword")
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     @ResponseBody
     public commonResult<commonPage<CkmdDepositoryIn>> list(
@@ -67,8 +76,7 @@ public class CkDepositoryInController {
         return commonResult.success(commonPage.restPage(menuList));
     }
 
-
-    @ApiOperation(value = "检验--是否已入库-入库编号", notes = "校验是否已入库")
+    @ApiOperation(value = "Check if inbound id exists", notes = "Check if inbound id exists")
     @RequestMapping(value = "/checkDepositoryInId", method = RequestMethod.GET)
     @ResponseBody
     public commonResult checkRoleName(Long DepositoryInId) {
@@ -80,15 +88,16 @@ public class CkDepositoryInController {
         }
     }
 
-    @ApiOperation(value = "入库清单-质检")
+    @ApiOperation(value = "Inbound audit")
     @RequestMapping(value = "/checkById", method = RequestMethod.POST)
     @ResponseBody
-    public commonResult checkById(@RequestParam(value = "id") Long id) {
+    public commonResult checkById(@RequestParam(value = "id") Long id, HttpServletRequest request) {
         int count = depositoryInService.checkById(id);
         if (count > 0) {
+            operationLogService.record(null, "INBOUND", "INBOUND", String.valueOf(id),
+                    "Inbound audit completed", request);
             return commonResult.success(count);
         }
         return commonResult.failed();
     }
-
 }

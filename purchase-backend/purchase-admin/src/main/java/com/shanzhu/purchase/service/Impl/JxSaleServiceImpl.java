@@ -32,6 +32,8 @@ import java.util.Map;
 @Service
 public class JxSaleServiceImpl implements JxSaleService {
 
+    private static final String REMARK_PARTIAL_SHORTAGE = "PARTIAL_SHORTAGE";
+
     @Resource
     private JxmdSaleMapper saleMapper;
 
@@ -54,7 +56,12 @@ public class JxSaleServiceImpl implements JxSaleService {
             sale.setTotalPrice(sale.getPrice().multiply(BigDecimal.valueOf(sale.getNum())));
         }
         sale.setStatus(1);
-        sale.setSaleNumber(String.valueOf(UUidUtils.uuid()));
+        if (StrUtil.isBlank(sale.getSaleNumber())) {
+            sale.setSaleNumber(String.valueOf(UUidUtils.uuid()));
+        }
+        if (isStockShortage(sale.getShop(), sale.getNum())) {
+            sale.setRemark(REMARK_PARTIAL_SHORTAGE);
+        }
         return saleMapper.insertSelective(sale);
     }
 
@@ -215,6 +222,7 @@ public class JxSaleServiceImpl implements JxSaleService {
             JxmdSale first = orderRows.get(0);
             long totalQuantity = 0L;
             BigDecimal totalAmount = BigDecimal.ZERO;
+            boolean partialShortage = false;
             for (JxmdSale row : orderRows) {
                 totalQuantity += row.getNum() == null ? 0L : row.getNum();
                 if (row.getTotalPrice() != null) {
@@ -222,16 +230,22 @@ public class JxSaleServiceImpl implements JxSaleService {
                 } else if (row.getPrice() != null && row.getNum() != null) {
                     totalAmount = totalAmount.add(row.getPrice().multiply(BigDecimal.valueOf(row.getNum())));
                 }
+                if (row.getRemark() != null && row.getRemark().contains(REMARK_PARTIAL_SHORTAGE)) {
+                    partialShortage = true;
+                }
             }
 
             List<CkmdDepositoryOut> outRows = getOutRowsBySaleNumber(saleNumber);
             String statusCode = "WAITING_WAVE";
-            String statusLabel = "待生成波次";
+            String statusLabel = "Waiting Wave";
             String waveNo = "";
             String depository = "";
             if (first.getStatus() != null && first.getStatus() == 0) {
                 statusCode = "COMPLETED";
-                statusLabel = "已完成";
+                statusLabel = "Completed";
+            } else if (partialShortage) {
+                statusCode = "PARTIAL_SHORTAGE";
+                statusLabel = "Partial shortage";
             } else if (!outRows.isEmpty()) {
                 CkmdDepositoryOut firstOut = outRows.get(0);
                 waveNo = buildWaveNo(firstOut);
@@ -245,10 +259,10 @@ public class JxSaleServiceImpl implements JxSaleService {
                 }
                 if (hasPending) {
                     statusCode = "PICKING";
-                    statusLabel = "拣货中";
+                    statusLabel = "Picking";
                 } else {
                     statusCode = "COMPLETED";
-                    statusLabel = "已完成";
+                    statusLabel = "Completed";
                 }
             }
 
@@ -345,6 +359,32 @@ public class JxSaleServiceImpl implements JxSaleService {
         return saleMapper.updateByExampleSelective(update, example);
     }
 
+    @Override
+    public List<Map<String, Object>> pickPath(String saleNumber) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        List<CkmdDepositoryOut> outRows = getOutRowsBySaleNumber(saleNumber);
+        Map<String, Map<String, Object>> merged = new HashMap<>();
+        for (CkmdDepositoryOut out : outRows) {
+            if (out == null || out.getShopName() == null) {
+                continue;
+            }
+            String key = out.getDepository() + "::" + out.getShopName();
+            Map<String, Object> row = merged.computeIfAbsent(key, k -> {
+                Map<String, Object> obj = new HashMap<>();
+                obj.put("depository", out.getDepository());
+                obj.put("shopName", out.getShopName());
+                obj.put("needQuantity", 0L);
+                obj.put("location", resolveLocation(out.getShopName(), out.getDepository()));
+                return obj;
+            });
+            long now = ((Number) row.get("needQuantity")).longValue();
+            row.put("needQuantity", now + (out.getShopNumber() == null ? 0L : out.getShopNumber()));
+        }
+        result.addAll(merged.values());
+        result.sort((a, b) -> compareLocation(String.valueOf(a.get("location")), String.valueOf(b.get("location"))));
+        return result;
+    }
+
     private List<JxmdSale> getSaleRowsBySaleNumber(String saleNumber) {
         JxmdSaleExample example = new JxmdSaleExample();
         example.createCriteria().andSaleNumberEqualTo(saleNumber);
@@ -378,5 +418,53 @@ public class JxSaleServiceImpl implements JxSaleService {
         String timePart = baseTime.format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
         String slot = baseTime.getMinute() < 30 ? "A" : "B";
         return "WAVE-" + timePart + "-" + slot;
+    }
+
+    private String resolveLocation(String shopName, String depository) {
+        CkmdStockExample example = new CkmdStockExample();
+        example.createCriteria().andShopEqualTo(shopName).andDepositoryEqualTo(depository);
+        List<CkmdStock> stocks = stockMapper.selectByExample(example);
+        if (stocks != null && !stocks.isEmpty() && stocks.get(0).getAddress() != null) {
+            return stocks.get(0).getAddress();
+        }
+        return depository == null ? "" : depository;
+    }
+
+    private int compareLocation(String a, String b) {
+        String aa = a == null ? "" : a.trim();
+        String bb = b == null ? "" : b.trim();
+        String ap = aa.replaceAll("[0-9]", "");
+        String bp = bb.replaceAll("[0-9]", "");
+        int pre = ap.compareToIgnoreCase(bp);
+        if (pre != 0) {
+            return pre;
+        }
+        return Integer.compare(parseFirstNumber(aa), parseFirstNumber(bb));
+    }
+
+    private int parseFirstNumber(String value) {
+        String num = value == null ? "" : value.replaceAll("[^0-9]", "");
+        if (num.length() == 0) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(num);
+        } catch (Exception ex) {
+            return 0;
+        }
+    }
+
+    private boolean isStockShortage(String shopName, Long saleNum) {
+        if (shopName == null || saleNum == null) {
+            return false;
+        }
+        CkmdStockExample example = new CkmdStockExample();
+        example.createCriteria().andShopEqualTo(shopName);
+        List<CkmdStock> stocks = stockMapper.selectByExample(example);
+        long total = 0L;
+        for (CkmdStock stock : stocks) {
+            total += stock.getQuantity() == null ? 0L : stock.getQuantity();
+        }
+        return total < saleNum;
     }
 }
