@@ -48,6 +48,23 @@
                  ) AS p ON s1.shop = p.shop
         LIMIT 0,5
     </select>
+
+    <select id="getRecentSevenDaySales" resultType="map">
+        SELECT shop AS shop,
+               IFNULL(SUM(num), 0) AS saleTotal
+        FROM jxmd_sale
+        WHERE time &gt;= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        GROUP BY shop
+    </select>
+
+    <select id="listWarningBase" resultType="map">
+        SELECT id            AS stockId,
+               shop          AS shop,
+               shop_type     AS shopType,
+               depository    AS depository,
+               quantity      AS quantity,
+               IFNULL(safety_stock, 10) AS safeStock,
+               expire_date   AS expireDate
+        FROM ckmd_stock
+    </select>
 </mapper>
-
-

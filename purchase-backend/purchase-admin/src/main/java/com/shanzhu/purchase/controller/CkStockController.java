@@ -91,4 +91,36 @@ public class CkStockController {
         return commonResult.success(shopMap);
     }
 
+    @ApiOperation("搴撳瓨棰勮鍒楄〃")
+    @RequestMapping(value = "/warningList", method = RequestMethod.GET)
+    @ResponseBody
+    public commonResult<List<Map<String, Object>>> warningList() {
+        List<Map<String, Object>> warningList = stockService.warningList();
+        return commonResult.success(warningList);
+    }
+
+    @ApiOperation("预警数量")
+    @RequestMapping(value = "/warningCount", method = RequestMethod.GET)
+    @ResponseBody
+    public commonResult<Long> warningCount() {
+        return commonResult.success(stockService.warningCount());
+    }
+
+    @ApiOperation("琛ヨ揣寤鸿鍒楄〃")
+    @RequestMapping(value = "/replenishList", method = RequestMethod.GET)
+    @ResponseBody
+    public commonResult<List<Map<String, Object>>> replenishList() {
+        List<Map<String, Object>> replenishList = stockService.replenishSuggestions();
+        return commonResult.success(replenishList);
+    }
+
+    @ApiOperation("库存分析列表")
+    @RequestMapping(value = "/analysisList", method = RequestMethod.GET)
+    @ResponseBody
+    public commonResult<List<Map<String, Object>>> analysisList(
+            @RequestParam(value = "shopType", required = false) String shopType
+    ) {
+        return commonResult.success(stockService.analysisList(shopType));
+    }
+
 }

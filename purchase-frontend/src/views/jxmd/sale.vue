@@ -2,10 +2,55 @@
   <div class="detail-page">
     <section class="detail-card">
       <div class="detail-toolbar">
-        <button type="button" class="plain-btn" @click="loadOrders">刷新列表</button>
-        <el-select v-model="selectedNumber" placeholder="选择销售单" class="order-select">
-          <el-option v-for="item in orders" :key="item.saleNumber" :label="item.saleNumber" :value="item.saleNumber"></el-option>
+        <el-input v-model="query.keyword" placeholder="订单号" clearable class="query-input" />
+        <el-select v-model="query.status" clearable placeholder="状态" class="query-select">
+          <el-option label="待处理" :value="1" />
+          <el-option label="已完成" :value="0" />
         </el-select>
+        <el-date-picker
+          v-model="query.dateRange"
+          type="daterange"
+          value-format="yyyy-MM-dd"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          class="query-date"
+          clearable
+        />
+        <button type="button" class="plain-btn" @click="refreshAll">查询</button>
+        <button type="button" class="plain-btn" @click="resetQuery">重置</button>
+      </div>
+
+      <div class="detail-toolbar">
+        <el-select v-model="selectedNumber" placeholder="选择销售单" class="order-select">
+          <el-option v-for="item in orders" :key="item.saleNumber" :label="item.saleNumber" :value="item.saleNumber" />
+        </el-select>
+        <el-select v-model="selectedDepository" placeholder="选择发货仓库" class="depository-select" clearable>
+          <el-option v-for="item in depositoryOptions" :key="item.id" :label="item.name" :value="item.name" />
+        </el-select>
+        <button
+          type="button"
+          class="plain-btn plain-btn--primary"
+          :disabled="!currentOrder || currentOrder.statusCode !== 'WAITING_WAVE'"
+          @click="handleCreateWave"
+        >
+          生成波次
+        </button>
+        <button
+          type="button"
+          class="plain-btn plain-btn--success"
+          :disabled="!currentOrder || currentOrder.statusCode !== 'PICKING'"
+          @click="handleFinishPick"
+        >
+          完成拣货
+        </button>
+        <el-select v-model="manualStatus" placeholder="手动改状态" class="status-select" clearable>
+          <el-option label="待处理" :value="1" />
+          <el-option label="已完成" :value="0" />
+        </el-select>
+        <button type="button" class="plain-btn" :disabled="!currentOrder || manualStatus === null" @click="handleManualStatus">
+          保存状态
+        </button>
       </div>
 
       <template v-if="currentOrder">
@@ -18,25 +63,25 @@
           </div>
           <div class="detail-row">
             <span>客户</span>
-            <strong>{{ currentOrder.supplier }}</strong>
-            <span>交付日期</span>
-            <strong>{{ formatTime(currentOrder.time) }}</strong>
+            <strong>{{ currentOrder.customer || "-" }}</strong>
+            <span>销售员</span>
+            <strong>{{ currentOrder.saleUser || "-" }}</strong>
           </div>
           <div class="detail-row">
+            <span>波次号</span>
+            <strong>{{ currentOrder.waveNo || "未生成" }}</strong>
             <span>发货仓库</span>
-            <strong>{{ currentOrder.rows[0] && currentOrder.rows[0].shopType }}</strong>
-            <span>总金额</span>
-            <strong>{{ currentOrder.totalAmount }}</strong>
+            <strong>{{ currentOrder.depository || selectedDepository || "-" }}</strong>
           </div>
           <div class="detail-row">
             <span>状态</span>
             <strong>
-              <em class="status-pill" :class="{ 'is-done': Number(currentOrder.status) === 0 }">
-                {{ Number(currentOrder.status) === 0 ? "已完成" : "进行中" }}
+              <em class="status-pill" :class="statusClass(currentOrder.statusCode)">
+                {{ currentOrder.statusLabel }}
               </em>
             </strong>
-            <span>备注</span>
-            <strong>{{ currentOrder.remark || "渠道直供已交付" }}</strong>
+            <span>订单金额</span>
+            <strong>{{ currentOrder.totalAmount || 0 }}</strong>
           </div>
         </div>
       </template>
@@ -44,8 +89,8 @@
     </section>
 
     <section class="detail-card">
-      <h3>明细行</h3>
-      <div v-if="currentOrder" class="detail-table">
+      <h3>订单明细</h3>
+      <div v-if="currentRows.length" class="detail-table">
         <div class="detail-table__head">
           <span>SKU</span>
           <span>商品</span>
@@ -53,7 +98,7 @@
           <span>单价</span>
           <span>金额</span>
         </div>
-        <div v-for="(item, index) in currentOrder.rows" :key="item.id || index" class="detail-table__row">
+        <div v-for="(item, index) in currentRows" :key="item.id || index" class="detail-table__row">
           <span>{{ formatSkuCode(item.id, index) }}</span>
           <span>{{ item.shop }}</span>
           <span>{{ item.num }}</span>
@@ -61,6 +106,7 @@
           <span>{{ item.totalPrice || item.num * item.price }}</span>
         </div>
       </div>
+      <div v-else class="empty-card">当前订单暂无明细。</div>
     </section>
   </div>
 </template>
@@ -70,17 +116,33 @@ export default {
   name: "sale",
   data() {
     return {
+      query: {
+        keyword: "",
+        status: null,
+        dateRange: [],
+      },
       orders: [],
       selectedNumber: "",
+      selectedDepository: "",
+      manualStatus: null,
+      depositoryOptions: [],
+      rowsByNumber: {},
     };
   },
   computed: {
     currentOrder() {
       return this.orders.find((item) => item.saleNumber === this.selectedNumber) || null;
     },
+    currentRows() {
+      if (!this.selectedNumber) {
+        return [];
+      }
+      return this.rowsByNumber[this.selectedNumber] || [];
+    },
   },
   mounted() {
-    this.loadOrders();
+    this.refreshAll();
+    this.loadDepositories();
   },
   methods: {
     formatTime(value) {
@@ -91,37 +153,144 @@ export default {
       const raw = value || fallback;
       return `SKU-${String(raw).padStart(4, "0")}`;
     },
-    loadOrders() {
-      this.$http
+    statusClass(statusCode) {
+      if (statusCode === "COMPLETED") {
+        return "is-done";
+      }
+      if (statusCode === "PICKING") {
+        return "is-picking";
+      }
+      return "";
+    },
+    resetQuery() {
+      this.query = {
+        keyword: "",
+        status: null,
+        dateRange: [],
+      };
+      this.refreshAll();
+    },
+    refreshAll() {
+      Promise.all([this.loadWaveOrders(), this.loadOrderRows()]);
+    },
+    loadWaveOrders() {
+      return this.$http.get("/sale/waveList").then((res) => {
+        let list = res.data.data || [];
+        if (this.query.keyword) {
+          list = list.filter((item) => String(item.saleNumber || "").includes(this.query.keyword));
+        }
+        if (this.query.status !== null && this.query.status !== undefined) {
+          list = list.filter((item) => {
+            const statusNum = item.statusCode === "COMPLETED" ? 0 : 1;
+            return statusNum === this.query.status;
+          });
+        }
+        if (this.query.dateRange && this.query.dateRange.length === 2) {
+          const [startDate, endDate] = this.query.dateRange;
+          const start = new Date(`${startDate} 00:00:00`).getTime();
+          const end = new Date(`${endDate} 23:59:59`).getTime();
+          list = list.filter((item) => {
+            const t = new Date(item.time).getTime();
+            return t >= start && t <= end;
+          });
+        }
+        this.orders = list;
+        if (!this.selectedNumber || !this.orders.find((item) => item.saleNumber === this.selectedNumber)) {
+          this.selectedNumber = this.orders.length ? this.orders[0].saleNumber : "";
+        }
+      });
+    },
+    loadOrderRows() {
+      const [startDate, endDate] = this.query.dateRange || [];
+      return this.$http
         .get("/sale/list", {
           params: {
             pageNum: 1,
-            pageSize: 200,
-            keyword: "",
+            pageSize: 500,
+            keyword: this.query.keyword,
+            status: this.query.status,
+            startDate,
+            endDate,
           },
         })
         .then((res) => {
           const rows = (res.data.data && res.data.data.list) || [];
-          const map = rows.reduce((groups, item) => {
+          this.rowsByNumber = rows.reduce((groups, item) => {
             if (!groups[item.saleNumber]) {
-              groups[item.saleNumber] = {
-                saleNumber: item.saleNumber,
-                supplier: item.supplier,
-                saleUser: item.saleUser,
-                status: item.status,
-                time: item.time,
-                remark: item.remark,
-                rows: [],
-                totalAmount: 0,
-              };
+              groups[item.saleNumber] = [];
             }
-            groups[item.saleNumber].rows.push(item);
-            groups[item.saleNumber].totalAmount += Number(item.totalPrice || item.num * item.price || 0);
+            groups[item.saleNumber].push(item);
             return groups;
           }, {});
-
-          this.orders = Object.values(map).sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
-          this.selectedNumber = this.orders.length ? this.orders[0].saleNumber : "";
+        });
+    },
+    loadDepositories() {
+      this.$http.get("/depository/listAll").then((res) => {
+        this.depositoryOptions = res.data.data || [];
+      });
+    },
+    handleCreateWave() {
+      if (!this.currentOrder) {
+        return;
+      }
+      const depositoryName = this.selectedDepository || this.currentOrder.depository;
+      if (!depositoryName) {
+        this.$message.warning("请先选择发货仓库");
+        return;
+      }
+      this.$http
+        .post("/sale/createWave", null, {
+          params: {
+            saleNumber: this.currentOrder.saleNumber,
+            depositoryName,
+          },
+        })
+        .then((res) => {
+          if (res.data.code === 200) {
+            this.$message.success("波次生成成功，已进入拣货中");
+            this.refreshAll();
+            return;
+          }
+          this.$message.error(res.data.message || "生成失败");
+        });
+    },
+    handleFinishPick() {
+      if (!this.currentOrder) {
+        return;
+      }
+      this.$http
+        .post("/sale/finishPick", null, {
+          params: {
+            saleNumber: this.currentOrder.saleNumber,
+          },
+        })
+        .then((res) => {
+          if (res.data.code === 200) {
+            this.$message.success("拣货完成，订单已更新");
+            this.refreshAll();
+            return;
+          }
+          this.$message.error(res.data.message || "处理失败");
+        });
+    },
+    handleManualStatus() {
+      if (!this.currentOrder || this.manualStatus === null || this.manualStatus === undefined) {
+        return;
+      }
+      this.$http
+        .post("/sale/updateStatus", null, {
+          params: {
+            saleNumber: this.currentOrder.saleNumber,
+            status: this.manualStatus,
+          },
+        })
+        .then((res) => {
+          if (res.data.code === 200) {
+            this.$message.success("订单状态已更新");
+            this.refreshAll();
+            return;
+          }
+          this.$message.error(res.data.message || "更新失败");
         });
     },
   },
@@ -146,7 +315,23 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.query-input {
+  width: 220px;
+}
+
+.query-select,
+.order-select,
+.depository-select,
+.status-select {
+  width: 180px;
+}
+
+.query-date {
+  width: 280px;
 }
 
 .plain-btn {
@@ -159,8 +344,19 @@ export default {
   cursor: pointer;
 }
 
-.order-select {
-  width: 260px;
+.plain-btn--primary {
+  border-color: #9dc8bc;
+  color: #2f7d72;
+}
+
+.plain-btn--success {
+  border-color: #99c89f;
+  color: #2a7b51;
+}
+
+.plain-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .detail-meta {
@@ -194,14 +390,19 @@ export default {
   height: 24px;
   padding: 0 10px;
   border-radius: 999px;
-  background: #fff1d9;
-  color: #bb8532;
+  background: #eef1f5;
+  color: #5e6672;
   font-size: 12px;
 }
 
 .status-pill.is-done {
   background: #def4e8;
   color: #398d67;
+}
+
+.status-pill.is-picking {
+  background: #fff1d9;
+  color: #bb8532;
 }
 
 .detail-card h3 {

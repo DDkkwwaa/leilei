@@ -55,6 +55,9 @@ public class JcShopController {
         if (count > 0) {
             return commonResult.success(count);
         }
+        if (count == -1) {
+            return commonResult.failed("该商品存在关联库存，无法删除");
+        }
         return commonResult.failed();
     }
 

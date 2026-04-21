@@ -1,10 +1,8 @@
 package com.shanzhu.purchase.service.Impl;
 
-
 import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageHelper;
 import com.shanzhu.purchase.dao.CkStockDao;
-import com.shanzhu.purchase.dao.JxSaleDao;
 import com.shanzhu.purchase.dto.ShopAndSaleAndStockAndPurchaseDto;
 import com.shanzhu.purchase.dto.StockUpDto;
 import com.shanzhu.purchase.mapper.CkmdDepositoryMapper;
@@ -14,22 +12,21 @@ import com.shanzhu.purchase.model.CkmdDepository;
 import com.shanzhu.purchase.model.CkmdDepositoryExample;
 import com.shanzhu.purchase.model.CkmdStock;
 import com.shanzhu.purchase.model.CkmdStockExample;
+import com.shanzhu.purchase.model.JxmdSale;
+import com.shanzhu.purchase.model.JxmdSaleExample;
 import com.shanzhu.purchase.service.CkStockService;
 import com.shanzhu.purchase.util.calculationUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 库存列表
- */
 @Service
 public class CkStockServiceImpl implements CkStockService {
 
@@ -37,10 +34,13 @@ public class CkStockServiceImpl implements CkStockService {
     private CkmdStockMapper stockMapper;
 
     @Resource
-    private CkStockDao stockDao;  //自定义仓库列表DQL DMl
+    private CkStockDao stockDao;
 
     @Resource
-    private CkmdDepositoryMapper depositoryMapper;   //仓库列表
+    private CkmdDepositoryMapper depositoryMapper;
+
+    @Resource
+    private JxmdSaleMapper saleMapper;
 
     @Override
     public int create(CkmdStock stock) {
@@ -70,123 +70,75 @@ public class CkStockServiceImpl implements CkStockService {
         CkmdStockExample example = new CkmdStockExample();
         if (!StrUtil.isEmpty(keyword)) {
             example.createCriteria().andShopLike("%" + keyword + "%");
-
         }
         return stockMapper.selectByExample(example);
     }
 
     @Override
     public int addOrUpdateStock(CkmdStock stock) {
-        // 判断  主键是否存在，如果存在就走更新的逻辑否则新增数据
-
-        //  增加出现 ：商品名称和 存入库存相同的情况
-        //  通过 传入的 商品名称和 存入库存是否和数据库中有相同的    有则更新数据库中的，没有则添加
-        int res = 0;
-        if (stock.getId() != null && stock.getId() != 0) { //有具体id
-            // 表示更新操作
+        if (stock.getId() != null && stock.getId() != 0) {
             return this.update(stock);
         }
-
         return this.create(stock);
     }
 
     @Override
     public int updateQuantityByTwoName(StockUpDto stockUpDto) {
-        if (stockUpDto.getFlag() == 0) {  //增加库存
+        if (stockUpDto.getFlag() == 0) {
             return stockDao.addQuantityByTwoName(stockUpDto.getQuantity(), stockUpDto.getShopName(), stockUpDto.getDepositoryName());
         }
-        //减少库存
         return stockDao.reduceQuantityByTwoName(stockUpDto.getQuantity(), stockUpDto.getShopName(), stockUpDto.getDepositoryName());
     }
 
-    /**
-     * 通过商品和仓库名获取库存列表
-     */
     @Override
     public List<CkmdStock> getStockByTwoName(String shopName, String depositoryName) {
         return stockDao.getStockByTwoName(shopName, depositoryName);
     }
 
-    /**
-     * Echart地图 柱状图数据
-     * 商品1：[采购量   销售量、 库存量 ]  销售总价
-     * 三张表 关联统计查询  左连接表 去匹配 三张表  1:n的关系
-     * <p>
-     * 销售表  1.获取销售量最高的前5个商品  => 5个商品 + 5个销售量
-     * 库存表      库存量 查询统计5个商品的库存量，条件是商品名  ==> 库存量
-     * 采购表   采购表    查询统计5个商品的采购，条件是商品名  ==>  采购量
-     * <p>
-     */
     @Override
     public List<Map> histogramList() {
         List<Map> allList = new ArrayList<>();
-        List<String> shopList = new ArrayList<>();      //商品集合
-        List<Long> saleList = new ArrayList<>();       //销售量集合
-        List<Long> stockList = new ArrayList<>();      //库存量集合
-        List<Long> purchaseList = new ArrayList<>();     //采购量集合
+        List<String> shopList = new ArrayList<>();
+        List<Long> saleList = new ArrayList<>();
+        List<Long> stockList = new ArrayList<>();
+        List<Long> purchaseList = new ArrayList<>();
         Map<String, List> map = new HashMap<>();
-        Long base = 0l;
+        long base = 0L;
         List<ShopAndSaleAndStockAndPurchaseDto> histogramData = stockDao.getNumberToShopAndStockAndPurchase();
         if (histogramData != null) {
             for (ShopAndSaleAndStockAndPurchaseDto dto : histogramData) {
-                // 商品list  销售量list  库存量list  采购量list
-                String shopName = dto.getShopName();
-                Long stockNumber = dto.getStockNumber();
-                Long saleNumber = dto.getSaleNumber();
-                Long purchaseNumber = dto.getPurchaseNumber();
-                shopList.add(shopName);
-                //判断 是否为空 销售、库存、采购
-                if (stockNumber != null && stockNumber.toString().length() > 0) {
-                    stockList.add(stockNumber);
-                } else {
-                    stockList.add(base);
-                }
-                if (saleNumber != null && stockNumber.toString().length() > 0) {
-                    saleList.add(dto.getSaleNumber());
-                } else {
-                    saleList.add(base);
-                }
-                if (purchaseNumber != null && purchaseNumber.toString().length() > 0) {
-                    purchaseList.add(dto.getPurchaseNumber());
-                } else {
-                    purchaseList.add(base);
-                }
+                shopList.add(dto.getShopName());
+                stockList.add(dto.getStockNumber() == null ? base : dto.getStockNumber());
+                saleList.add(dto.getSaleNumber() == null ? base : dto.getSaleNumber());
+                purchaseList.add(dto.getPurchaseNumber() == null ? base : dto.getPurchaseNumber());
             }
         }
-        map.put("shopList", shopList);  //商品
-        map.put("saleList", saleList); //销售量
-        map.put("stockList", stockList);  //库存量
-        map.put("purchaseList", purchaseList);  //采购量
+        map.put("shopList", shopList);
+        map.put("saleList", saleList);
+        map.put("stockList", stockList);
+        map.put("purchaseList", purchaseList);
         allList.add(map);
-        return allList;  //需要处理
+        return allList;
     }
 
-
-    /**
-     * 饼图 商品库存列表
-     * 库存   k:商品  value: 公式计算 库存量 / 总仓库容量
-     */
     @Override
-    public List<Map> shopMap() {
+    public List shopMap() {
         List<Map> list = new ArrayList<>();
-        //查询仓库总容量
-        Long totalVolume = 0l;
+        long totalVolume = 0L;
         List<CkmdDepository> depositoryList = depositoryMapper.selectByExample(new CkmdDepositoryExample());
         for (CkmdDepository depository : depositoryList) {
-            Long stockTotal = depository.getStockTotal();
-            totalVolume += stockTotal;
+            totalVolume += depository.getStockTotal() == null ? 0L : depository.getStockTotal();
         }
-        //计算  容量转为kg
         BigDecimal bigKg = calculationUtils.INTCalculatingVolumeToWeight(totalVolume);
-        //获取商品库存列表
         List<CkmdStock> stockList = stockMapper.selectByExample(new CkmdStockExample());
         for (CkmdStock stock : stockList) {
-            String shop = stock.getShop(); //商品名
-            Long quantity = stock.getQuantity(); //库存量
-            BigDecimal bigDecimal = new BigDecimal(quantity);
-            BigDecimal divideValue = bigDecimal.divide(bigKg, 0);   // 除后的
-            if (10 > divideValue.signum()) {
-                divideValue = BigDecimal.valueOf(10);
+            String shop = stock.getShop();
+            long quantity = stock.getQuantity() == null ? 0L : stock.getQuantity();
+            BigDecimal divideValue = bigKg.compareTo(BigDecimal.ZERO) == 0
+                    ? BigDecimal.TEN
+                    : BigDecimal.valueOf(quantity).divide(bigKg, 0, BigDecimal.ROUND_UP);
+            if (divideValue.compareTo(BigDecimal.TEN) < 0) {
+                divideValue = BigDecimal.TEN;
             }
             HashMap<String, String> map = new HashMap<>();
             map.put("name", shop);
@@ -196,4 +148,212 @@ public class CkStockServiceImpl implements CkStockService {
         return list;
     }
 
+    @Override
+    public List<Map<String, Object>> warningList() {
+        List<Map<String, Object>> warningList = new ArrayList<>();
+        List<Map<String, Object>> baseRows = stockDao.listWarningBase();
+        if (baseRows == null || baseRows.isEmpty()) {
+            return warningList;
+        }
+        LocalDate nearExpireDay = LocalDate.now().plusDays(3);
+        for (Map<String, Object> row : baseRows) {
+            long quantity = numberValue(row.get("quantity"));
+            long safeStock = Math.max(0L, numberValue(row.get("safeStock")));
+            LocalDate expireDate = dateValue(row.get("expireDate"));
+            boolean lowStockWarning = quantity < safeStock;
+            boolean nearExpireWarning = expireDate != null && !expireDate.isAfter(nearExpireDay);
+            boolean warning = lowStockWarning || nearExpireWarning;
+            long gap = Math.max(0L, safeStock - quantity);
+
+            Map<String, Object> item = new HashMap<>();
+            item.put("stockId", row.get("stockId"));
+            item.put("shop", row.get("shop"));
+            item.put("shopType", row.get("shopType"));
+            item.put("depository", row.get("depository"));
+            item.put("quantity", quantity);
+            item.put("safeStock", safeStock);
+            item.put("expireDate", expireDate == null ? null : expireDate.toString());
+            item.put("warningType", lowStockWarning && nearExpireWarning ? "BOTH" : (lowStockWarning ? "LOW_STOCK" : (nearExpireWarning ? "NEAR_EXPIRE" : "NONE")));
+            item.put("warning", warning);
+            item.put("gap", gap);
+            warningList.add(item);
+        }
+        warningList.sort((a, b) -> {
+            boolean aWarning = Boolean.TRUE.equals(a.get("warning"));
+            boolean bWarning = Boolean.TRUE.equals(b.get("warning"));
+            if (aWarning != bWarning) {
+                return aWarning ? -1 : 1;
+            }
+            return Long.compare(numberValue(b.get("gap")), numberValue(a.get("gap")));
+        });
+        return warningList;
+    }
+
+    @Override
+    public List<Map<String, Object>> replenishSuggestions() {
+        List<Map<String, Object>> suggestions = new ArrayList<>();
+        Map<String, Long> recentSaleMap = buildRecentSaleMap();
+        Map<String, Integer> effectiveDaysMap = buildRecentSaleEffectiveDays();
+        List<CkmdStock> stocks = stockMapper.selectByExample(new CkmdStockExample());
+        if (stocks == null || stocks.isEmpty()) {
+            return suggestions;
+        }
+        for (CkmdStock stock : stocks) {
+            long quantity = stock.getQuantity() == null ? 0L : stock.getQuantity();
+            long recentSevenDaySale = recentSaleMap.getOrDefault(stock.getShop(), 0L);
+            int effectiveDays = Math.max(1, effectiveDaysMap.getOrDefault(stock.getShop(), 1));
+            long averageDailySale = (long) Math.ceil((double) recentSevenDaySale / (double) effectiveDays);
+            long suggestQuantity = averageDailySale * 3L - quantity;
+            if (suggestQuantity < 0L) {
+                suggestQuantity = 0L;
+            } else if (suggestQuantity > 0L && suggestQuantity < 5L) {
+                suggestQuantity = 5L;
+            }
+            if (suggestQuantity <= 0L) {
+                continue;
+            }
+            Map<String, Object> item = new HashMap<>();
+            item.put("stockId", stock.getId());
+            item.put("shop", stock.getShop());
+            item.put("depository", stock.getDepository());
+            item.put("quantity", quantity);
+            item.put("safeStock", averageDailySale * 3L);
+            item.put("targetStock", averageDailySale * 3L);
+            item.put("suggestQuantity", suggestQuantity);
+            item.put("recentSevenDaySale", recentSevenDaySale);
+            item.put("effectiveDays", effectiveDays);
+            item.put("reason", "近7日销量移动平均补货建议");
+            suggestions.add(item);
+        }
+        suggestions.sort((a, b) -> Long.compare(numberValue(b.get("suggestQuantity")), numberValue(a.get("suggestQuantity"))));
+        return suggestions;
+    }
+
+    @Override
+    public Long warningCount() {
+        return warningList().stream().filter(item -> Boolean.TRUE.equals(item.get("warning"))).count();
+    }
+
+    @Override
+    public List<Map<String, Object>> analysisList(String shopType) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        Map<String, Long> recentSaleMap = buildRecentSaleMap();
+        Map<String, Long> stockTotalMap = new HashMap<>();
+        Map<String, String> stockTypeMap = new HashMap<>();
+        List<CkmdStock> stocks = stockMapper.selectByExample(new CkmdStockExample());
+        for (CkmdStock stock : stocks) {
+            if (stock == null || stock.getShop() == null) {
+                continue;
+            }
+            if (shopType != null && shopType.trim().length() > 0 && !shopType.equals(stock.getShopType())) {
+                continue;
+            }
+            stockTotalMap.put(stock.getShop(), stockTotalMap.getOrDefault(stock.getShop(), 0L) + (stock.getQuantity() == null ? 0L : stock.getQuantity()));
+            stockTypeMap.put(stock.getShop(), stock.getShopType());
+        }
+
+        Map<String, Long> shortageCountMap = new HashMap<>();
+        JxmdSaleExample saleExample = new JxmdSaleExample();
+        saleExample.createCriteria().andTimeGreaterThanOrEqualTo(LocalDateTime.now().minusDays(30));
+        List<JxmdSale> saleRows = saleMapper.selectByExample(saleExample);
+        for (JxmdSale sale : saleRows) {
+            if (sale == null || sale.getShop() == null || sale.getNum() == null) {
+                continue;
+            }
+            if (!stockTotalMap.containsKey(sale.getShop())) {
+                continue;
+            }
+            if (stockTotalMap.getOrDefault(sale.getShop(), 0L) < sale.getNum()) {
+                shortageCountMap.put(sale.getShop(), shortageCountMap.getOrDefault(sale.getShop(), 0L) + 1L);
+            }
+        }
+
+        for (Map.Entry<String, Long> entry : stockTotalMap.entrySet()) {
+            String shop = entry.getKey();
+            Map<String, Object> row = new HashMap<>();
+            row.put("shop", shop);
+            row.put("shopType", stockTypeMap.get(shop));
+            row.put("stockQuantity", entry.getValue());
+            row.put("recentSevenDaySale", recentSaleMap.getOrDefault(shop, 0L));
+            row.put("shortageFrequency", shortageCountMap.getOrDefault(shop, 0L));
+            result.add(row);
+        }
+        result.sort((a, b) -> {
+            long aFreq = numberValue(a.get("shortageFrequency"));
+            long bFreq = numberValue(b.get("shortageFrequency"));
+            if (aFreq != bFreq) {
+                return Long.compare(bFreq, aFreq);
+            }
+            return String.valueOf(a.get("shop")).compareTo(String.valueOf(b.get("shop")));
+        });
+        return result;
+    }
+
+    private Map<String, Long> buildRecentSaleMap() {
+        Map<String, Long> saleMap = new HashMap<>();
+        List<Map<String, Object>> recentSales = stockDao.getRecentSevenDaySales();
+        if (recentSales == null || recentSales.isEmpty()) {
+            return saleMap;
+        }
+        for (Map<String, Object> item : recentSales) {
+            if (item == null || item.get("shop") == null) {
+                continue;
+            }
+            saleMap.put(String.valueOf(item.get("shop")), numberValue(item.get("saleTotal")));
+        }
+        return saleMap;
+    }
+
+    private Map<String, Integer> buildRecentSaleEffectiveDays() {
+        Map<String, Integer> effectiveDaysMap = new HashMap<>();
+        JxmdSaleExample example = new JxmdSaleExample();
+        example.createCriteria().andTimeGreaterThanOrEqualTo(LocalDateTime.now().minusDays(7));
+        List<JxmdSale> rows = saleMapper.selectByExample(example);
+        Map<String, Map<LocalDate, Boolean>> dateMark = new HashMap<>();
+        for (JxmdSale row : rows) {
+            if (row == null || row.getShop() == null || row.getTime() == null || row.getNum() == null || row.getNum() <= 0) {
+                continue;
+            }
+            dateMark.computeIfAbsent(row.getShop(), key -> new HashMap<>()).put(row.getTime().toLocalDate(), Boolean.TRUE);
+        }
+        for (Map.Entry<String, Map<LocalDate, Boolean>> entry : dateMark.entrySet()) {
+            effectiveDaysMap.put(entry.getKey(), Math.max(1, entry.getValue().size()));
+        }
+        return effectiveDaysMap;
+    }
+
+    private long numberValue(Object value) {
+        if (value == null) {
+            return 0L;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (Exception ex) {
+            return 0L;
+        }
+    }
+
+    private LocalDate dateValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof LocalDate) {
+            return (LocalDate) value;
+        }
+        if (value instanceof LocalDateTime) {
+            return ((LocalDateTime) value).toLocalDate();
+        }
+        String text = String.valueOf(value);
+        if (text.length() >= 10) {
+            text = text.substring(0, 10);
+        }
+        try {
+            return LocalDate.parse(text);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
 }

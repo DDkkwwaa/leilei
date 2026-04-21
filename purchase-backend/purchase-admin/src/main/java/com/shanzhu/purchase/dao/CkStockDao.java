@@ -5,6 +5,7 @@ import com.shanzhu.purchase.model.CkmdStock;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 public interface CkStockDao {
 
@@ -15,4 +16,8 @@ public interface CkStockDao {
   List<CkmdStock> getStockByTwoName(String shopName, String depositoryName);
 
   List<ShopAndSaleAndStockAndPurchaseDto> getNumberToShopAndStockAndPurchase();
+
+  List<Map<String, Object>> getRecentSevenDaySales();
+
+  List<Map<String, Object>> listWarningBase();
 }

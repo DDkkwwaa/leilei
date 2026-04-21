@@ -3,6 +3,7 @@ package com.shanzhu.purchase.service;
 
 import com.shanzhu.purchase.model.JxmdSale;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,13 @@ public interface JxSaleService {
      */
     List<JxmdSale> list(String keyword, Integer pageSize, Integer pageNum);
 
+    List<JxmdSale> list(String keyword,
+                        Integer status,
+                        LocalDateTime startTime,
+                        LocalDateTime endTime,
+                        Integer pageSize,
+                        Integer pageNum);
+
     int addOrUpdate(JxmdSale sale);
 
     List getNumberAndCustomer();
@@ -41,4 +49,12 @@ public interface JxSaleService {
     int outSaleAndCheck(Map<String,Object> map);
 
     int checkInGoods(Map<String, Object> map);
+
+    List<Map<String, Object>> waveList();
+
+    int createWave(String saleNumber, String depositoryName);
+
+    int finishPick(String saleNumber);
+
+    int updateStatusBySaleNumber(String saleNumber, Integer status);
 }

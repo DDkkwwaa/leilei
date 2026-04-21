@@ -3,8 +3,10 @@ package com.shanzhu.purchase.service.Impl;
 import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageHelper;
 import com.shanzhu.purchase.dao.JcShopDao;
+import com.shanzhu.purchase.mapper.CkmdStockMapper;
 import com.shanzhu.purchase.mapper.JcmdShopMapper;
 import com.shanzhu.purchase.mapper.JcmdShopTypeMapper;
+import com.shanzhu.purchase.model.CkmdStockExample;
 import com.shanzhu.purchase.model.JcmdShop;
 import com.shanzhu.purchase.model.JcmdShopExample;
 import com.shanzhu.purchase.model.JcmdShopType;
@@ -35,6 +37,8 @@ public class JcShopServiceImpl implements JcShopService {
     @Resource
     private JcShopDao shopDao;
 
+    @Resource
+    private CkmdStockMapper stockMapper;
 
     @Override
     public int create(JcmdShop shop) {
@@ -61,6 +65,19 @@ public class JcShopServiceImpl implements JcShopService {
 
     @Override
     public int delete(Long id) {
+        if (id == null) {
+            return 0;
+        }
+        JcmdShop shop = shopMapper.selectByPrimaryKey(id);
+        if (shop == null || StrUtil.isBlank(shop.getName())) {
+            return 0;
+        }
+        CkmdStockExample stockExample = new CkmdStockExample();
+        stockExample.createCriteria().andShopEqualTo(shop.getName());
+        long linkedStockCount = stockMapper.countByExample(stockExample);
+        if (linkedStockCount > 0) {
+            return -1;
+        }
         int count = shopMapper.deleteByPrimaryKey(id);
         return count;
     }

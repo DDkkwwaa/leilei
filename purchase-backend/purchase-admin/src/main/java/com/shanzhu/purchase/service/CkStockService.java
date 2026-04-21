@@ -67,4 +67,12 @@ public interface CkStockService {
      * @return
      */
     List shopMap();
+
+    List<Map<String, Object>> warningList();
+
+    List<Map<String, Object>> replenishSuggestions();
+
+    Long warningCount();
+
+    List<Map<String, Object>> analysisList(String shopType);
 }
