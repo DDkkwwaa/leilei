@@ -42,7 +42,7 @@ public class TokenVerifyFilter extends BasicAuthenticationFilter {
         //配置放过请求
         List<String> msgs = Arrays.asList("/doc.html","/webjars","/v2","/v3",
                 "/favicon.ico","swagger-resources",
-                "/swagger-ui.html,","admin/login",
+                "/swagger-ui.html,","admin/login","/admin/forgotPassword",
                 "swagger-ui.html","/META-INF/resources/"
                 );
         for (String p : msgs) {

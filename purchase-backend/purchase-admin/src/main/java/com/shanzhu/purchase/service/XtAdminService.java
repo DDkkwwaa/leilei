@@ -1,7 +1,9 @@
 package com.shanzhu.purchase.service;
 
 import com.shanzhu.purchase.dto.UpdateAdminPasswordParam;
+import com.shanzhu.purchase.dto.UpdateAdminProfileParam;
 import com.shanzhu.purchase.dto.adminRoleRelationDto;
+import com.shanzhu.purchase.dto.ForgotPasswordParam;
 import com.shanzhu.purchase.model.XtmdAdmin;
 
 import java.util.List;
@@ -36,6 +38,10 @@ public interface XtAdminService {
      * @return
      */
     int updatePassword(UpdateAdminPasswordParam updatePasswordParam);
+
+    int forgotPassword(ForgotPasswordParam forgotPasswordParam);
+
+    int updateProfile(String username, UpdateAdminProfileParam updateAdminProfileParam);
 
 
     /**

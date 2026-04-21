@@ -46,6 +46,7 @@ public class MySpringSecurityConfiguration extends WebSecurityConfigurerAdapter 
                         "/swagger-resources/**",  //"/swagger-ui.html",
                         "/swagger-ui.html/**").permitAll()
                 .antMatchers("/api/*/auth/**","/test/**").permitAll()  //登陆注册
+                .antMatchers("/admin/forgotPassword").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 // 设置跨域的处理  corsConfigurationSource

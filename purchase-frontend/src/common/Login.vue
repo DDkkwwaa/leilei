@@ -116,9 +116,37 @@
 
           <div class="login-actions">
             <el-button type="primary" :loading="loading" @click="submitFormData">登录</el-button>
-            <button type="button" class="ghost-link">忘记密码</button>
+            <button type="button" class="ghost-link" @click="openForgotPassword">忘记密码</button>
           </div>
         </el-form>
+        <el-dialog
+          title="找回密码"
+          :visible.sync="forgotDialogVisible"
+          width="420px"
+          :append-to-body="true"
+          :modal-append-to-body="true"
+          :close-on-click-modal="false"
+          @close="resetForgotForm"
+        >
+          <el-form :model="forgotForm" label-width="88px" @submit.native.prevent>
+            <el-form-item label="账号">
+              <el-input v-model.trim="forgotForm.userName" placeholder="请输入账号"></el-input>
+            </el-form-item>
+            <el-form-item label="手机号">
+              <el-input v-model.trim="forgotForm.phone" placeholder="请输入手机号"></el-input>
+            </el-form-item>
+            <el-form-item label="新密码">
+              <el-input v-model.trim="forgotForm.newPassword" show-password placeholder="至少 6 位"></el-input>
+            </el-form-item>
+            <el-form-item label="确认密码">
+              <el-input v-model.trim="forgotForm.confirmPassword" show-password placeholder="请再次输入"></el-input>
+            </el-form-item>
+          </el-form>
+          <div slot="footer">
+            <el-button @click="forgotDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="submitForgotPassword">提交</el-button>
+          </div>
+        </el-dialog>
       </section>
     </div>
   </div>
@@ -137,6 +165,13 @@ export default {
       form: {
         username: "",
         password: "",
+      },
+      forgotDialogVisible: false,
+      forgotForm: {
+        userName: "",
+        phone: "",
+        newPassword: "",
+        confirmPassword: "",
       },
       rules: {
         username: [{ required: true, message: "请输入账号", trigger: "blur" }],
@@ -454,6 +489,47 @@ export default {
     togglePassword() {
       this.showPassword = !this.showPassword;
       this.syncPeekLoop();
+    },
+    openForgotPassword() {
+      this.error = "";
+      this.forgotDialogVisible = true;
+    },
+    resetForgotForm() {
+      this.forgotForm = {
+        userName: "",
+        phone: "",
+        newPassword: "",
+        confirmPassword: "",
+      };
+    },
+    submitForgotPassword() {
+      if (!this.forgotForm.userName || !this.forgotForm.phone || !this.forgotForm.newPassword || !this.forgotForm.confirmPassword) {
+        this.$message.warning("请完整填写找回密码信息");
+        return;
+      }
+      if (this.forgotForm.newPassword.length < 6) {
+        this.$message.warning("新密码至少 6 位");
+        return;
+      }
+      if (this.forgotForm.newPassword !== this.forgotForm.confirmPassword) {
+        this.$message.warning("两次输入的新密码不一致");
+        return;
+      }
+      this.$http.post("/admin/forgotPassword", {
+        userName: this.forgotForm.userName,
+        phone: this.forgotForm.phone,
+        newPassword: this.forgotForm.newPassword,
+      }).then((res) => {
+        if (res.data.code === 200) {
+          this.$message.success("重置成功，请使用新密码登录");
+          this.forgotDialogVisible = false;
+          this.resetForgotForm();
+          return;
+        }
+        this.$message.error(res.data.msg || "重置失败");
+      }).catch(() => {
+        this.$message.error("找回密码请求失败，请稍后重试");
+      });
     },
     syncPeekLoop() {
       clearTimeout(this.peekTimeout);

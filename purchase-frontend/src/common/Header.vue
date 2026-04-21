@@ -1,40 +1,20 @@
 <template>
   <div class="header-actions">
     <button type="button" class="bell-pill" @click="goWarningPage">
-      <span class="bell-pill__icon">ALRT</span>
-      <span class="bell-pill__text">Warnings</span>
+      <span class="bell-pill__icon">预警</span>
+      <span class="bell-pill__text">预警</span>
       <em v-if="warningCount > 0" class="bell-pill__badge">{{ warningCount > 99 ? "99+" : warningCount }}</em>
     </button>
 
-    <el-dropdown trigger="click" @command="handleCommand">
-      <button type="button" class="admin-pill">
-        <span class="admin-pill__icon">SYS</span>
-        <span class="admin-pill__copy">
-          <small>System Admin</small>
-          <strong>{{ username }}</strong>
-        </span>
-      </button>
-      <el-dropdown-menu slot="dropdown">
-        <el-dropdown-item command="password">Change Password</el-dropdown-item>
-      </el-dropdown-menu>
-    </el-dropdown>
+    <button type="button" class="admin-pill" @click="goProfilePage">
+      <span class="admin-pill__icon">系统</span>
+      <span class="admin-pill__copy">
+        <small>系统管理员</small>
+        <strong>{{ username }}</strong>
+      </span>
+    </button>
 
-    <button type="button" class="logout-pill" @click="handleCommand('logout')">Logout</button>
-
-    <el-dialog title="Change Password" :visible.sync="dialogFormVisible" width="420px" @close="closeDialog">
-      <el-form ref="passwordForm" :model="updatePassword" :rules="passwordRules" label-width="100px">
-        <el-form-item label="Old Password" prop="oldPassword">
-          <el-input v-model="updatePassword.oldPassword" type="password" placeholder="Please input old password" clearable />
-        </el-form-item>
-        <el-form-item label="New Password" prop="newPassword">
-          <el-input v-model="updatePassword.newPassword" type="password" placeholder="Please input new password" clearable />
-        </el-form-item>
-      </el-form>
-      <div slot="footer">
-        <el-button @click="dialogFormVisible = false">Cancel</el-button>
-        <el-button type="primary" @click="handleSubmitFormData('passwordForm')">Confirm</el-button>
-      </div>
-    </el-dialog>
+    <button type="button" class="logout-pill" @click="handleLogout">退出登录</button>
   </div>
 </template>
 
@@ -42,38 +22,9 @@
 export default {
   name: "Header",
   data() {
-    const checkPassword = (rule, value, callback) => {
-      if (!value) {
-        callback(new Error("Please input old password"));
-        return;
-      }
-
-      this.$http
-        .post("/admin/checkPassword", this.updatePassword)
-        .then((res) => {
-          if (res.data.data === "false") {
-            callback(new Error("Old password is incorrect"));
-            return;
-          }
-          callback();
-        })
-        .catch(() => callback(new Error("Password validation failed")));
-    };
-
     return {
-      dialogFormVisible: false,
-      dialogFormSubmitVisible: false,
       warningCount: 0,
       warningTimer: null,
-      updatePassword: {
-        username: sessionStorage.getItem("username"),
-        oldPassword: "",
-        newPassword: "",
-      },
-      passwordRules: {
-        oldPassword: [{ validator: checkPassword, trigger: "blur" }],
-        newPassword: [{ required: true, message: "Please input new password", trigger: "blur" }],
-      },
     };
   },
   computed: {
@@ -107,52 +58,23 @@ export default {
         this.$router.push("/stockList");
       }
     },
-    handleCommand(command) {
-      if (command === "password") {
-        this.dialogFormVisible = true;
-        return;
+    goProfilePage() {
+      if (this.$route.path !== "/syscfg") {
+        this.$router.push("/syscfg");
       }
-      if (command === "logout") {
-        this.$confirm("Confirm logout?", "Confirm", {
-          confirmButtonText: "Yes",
-          cancelButtonText: "No",
-          type: "warning",
+    },
+    handleLogout() {
+      this.$confirm("确认退出当前账号吗？", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          this.$router.push("/login");
         })
-          .then(() => {
-            this.$router.push("/login");
-          })
-          .catch(() => {
-            this.$message.info("Cancelled");
-          });
-      }
-    },
-    handleSubmitFormData(formName) {
-      this.$refs[formName].validate((valid) => {
-        if (!valid || this.dialogFormSubmitVisible) {
-          return false;
-        }
-        this.dialogFormSubmitVisible = true;
-        this.$http
-          .post("/admin/updatePassword", this.updatePassword)
-          .then(() => {
-            this.dialogFormVisible = false;
-            this.closeDialog();
-            this.$message.success("Password updated");
-          })
-          .finally(() => {
-            this.dialogFormSubmitVisible = false;
-          });
-      });
-    },
-    closeDialog() {
-      this.updatePassword = {
-        username: sessionStorage.getItem("username"),
-        oldPassword: "",
-        newPassword: "",
-      };
-      if (this.$refs.passwordForm) {
-        this.$refs.passwordForm.resetFields();
-      }
+        .catch(() => {
+          this.$message.info("已取消退出");
+        });
     },
   },
 };
@@ -170,10 +92,13 @@ export default {
 .logout-pill {
   display: inline-flex;
   align-items: center;
-  border: 1px solid rgba(228, 221, 205, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 10px 20px rgba(53, 43, 23, 0.05);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.76), rgba(246, 250, 255, 0.5));
+  box-shadow:
+    0 10px 24px rgba(33, 56, 92, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px) saturate(1.15);
 }
 
 .bell-pill {
@@ -213,7 +138,7 @@ export default {
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  background: #1d7c80;
+  background: linear-gradient(135deg, #5c89fb 0%, #4a75e9 100%);
   color: #ffffff;
   font-size: 12px;
   font-weight: 800;

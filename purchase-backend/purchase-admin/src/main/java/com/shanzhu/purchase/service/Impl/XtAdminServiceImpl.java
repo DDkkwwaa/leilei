@@ -4,7 +4,9 @@ package com.shanzhu.purchase.service.Impl;
 import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageHelper;
 import com.shanzhu.purchase.dao.XtAdminDao;
+import com.shanzhu.purchase.dto.ForgotPasswordParam;
 import com.shanzhu.purchase.dto.UpdateAdminPasswordParam;
+import com.shanzhu.purchase.dto.UpdateAdminProfileParam;
 import com.shanzhu.purchase.dto.adminRoleRelationDto;
 import com.shanzhu.purchase.mapper.XtmdAdminMapper;
 import com.shanzhu.purchase.mapper.XtmdAdminRoleRelationMapper;
@@ -71,6 +73,48 @@ public class XtAdminServiceImpl implements XtAdminService {
         String newPassword = param.getNewPassword();
         String updatePassword = new BCryptPasswordEncoder().encode(newPassword);  //加密新密码
         return AdminDao.updatePasswordByuserName(userName, updatePassword);
+    }
+
+    @Override
+    public int forgotPassword(ForgotPasswordParam forgotPasswordParam) {
+        if (forgotPasswordParam == null
+                || StrUtil.isBlank(forgotPasswordParam.getUserName())
+                || StrUtil.isBlank(forgotPasswordParam.getPhone())
+                || StrUtil.isBlank(forgotPasswordParam.getNewPassword())) {
+            return 0;
+        }
+        XtmdAdminExample example = new XtmdAdminExample();
+        example.createCriteria().andUserNameEqualTo(forgotPasswordParam.getUserName().trim());
+        List<XtmdAdmin> adminList = AdminMapper.selectByExample(example);
+        if (adminList == null || adminList.isEmpty()) {
+            return -1;
+        }
+        XtmdAdmin admin = adminList.get(0);
+        String dbPhone = admin.getPhone() == null ? "" : admin.getPhone().trim();
+        if (!dbPhone.equals(forgotPasswordParam.getPhone().trim())) {
+            return -2;
+        }
+        String updatePassword = new BCryptPasswordEncoder().encode(forgotPasswordParam.getNewPassword().trim());
+        return AdminDao.updatePasswordByuserName(forgotPasswordParam.getUserName().trim(), updatePassword);
+    }
+
+    @Override
+    public int updateProfile(String username, UpdateAdminProfileParam updateAdminProfileParam) {
+        XtmdAdminExample example = new XtmdAdminExample();
+        XtmdAdminExample.Criteria criteria = example.createCriteria();
+        criteria.andUserNameEqualTo(username);
+        List<XtmdAdmin> adminList = AdminMapper.selectByExample(example);
+        if (adminList == null || adminList.isEmpty()) {
+            return 0;
+        }
+        XtmdAdmin update = new XtmdAdmin();
+        update.setId(adminList.get(0).getId());
+        update.setTrueName(updateAdminProfileParam.getTrueName());
+        update.setPhone(updateAdminProfileParam.getPhone());
+        update.seteMail(updateAdminProfileParam.geteMail());
+        update.setSex(updateAdminProfileParam.getSex());
+        update.setRemark(updateAdminProfileParam.getRemark());
+        return AdminMapper.updateByPrimaryKeySelective(update);
     }
 
     @Override
@@ -233,4 +277,3 @@ public class XtAdminServiceImpl implements XtAdminService {
     }
 
 }
-
