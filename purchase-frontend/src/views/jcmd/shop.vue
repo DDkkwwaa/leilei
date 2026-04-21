@@ -13,21 +13,13 @@
         <div class="form-grid">
           <el-form-item label="商品编码">
             <el-input :value="displayShopCode" disabled></el-input>
-            <p class="field-tip">
-              {{ dataDialogForm.id ? "前端展示编码，后端仍使用实际ID。" : "当前为草稿编码，保存后生成正式展示编码。" }}
-            </p>
           </el-form-item>
           <el-form-item label="商品名称" prop="name">
             <el-input v-model="dataDialogForm.name" placeholder="请输入商品名称"></el-input>
           </el-form-item>
           <el-form-item label="商品分类" prop="parentId">
             <el-select v-model="dataDialogForm.parentId" placeholder="请选择分类">
-              <el-option
-                v-for="item in shopTypeList"
-                :key="item.id"
-                :label="'[' + item.id + '] ' + item.shopType"
-                :value="item.id"
-              ></el-option>
+              <el-option v-for="item in shopTypeList" :key="item.id" :label="item.shopType" :value="item.id"></el-option>
             </el-select>
           </el-form-item>
           <el-form-item label="规格" prop="specs">
@@ -54,8 +46,8 @@
       <div class="section-head">
         <h3>商品列表</h3>
         <div class="list-actions">
-          <el-input v-model="dataForm.shop" clearable placeholder="搜索商品" @keyup.enter.native="getDataList"></el-input>
-          <button type="button" class="plain-btn" @click="getDataList">查询</button>
+          <el-input v-model="dataForm.shop" clearable placeholder="搜索商品" @keyup.enter.native="searchData"></el-input>
+          <button type="button" class="plain-btn" @click="searchData">查询</button>
         </div>
       </div>
 
@@ -67,16 +59,10 @@
           <span>规格</span>
           <span>价格</span>
         </div>
-        <button
-          v-for="item in dataList"
-          :key="item.id"
-          type="button"
-          class="entity-table__row"
-          @click="handleEdit(0, item)"
-        >
-          <span>{{ formatDisplayCode("SKU", item.id, 4) }}</span>
+        <button v-for="item in dataList" :key="item.id" type="button" class="entity-table__row" @click="handleEdit(item)">
+          <span>{{ formatDisplayCode("商品", item.id, 4) }}</span>
           <span>{{ item.name }}</span>
-          <span>{{ item.parentId }}</span>
+          <span>{{ shopTypeName(item.parentId) }}</span>
           <span>{{ item.specs }}</span>
           <span>{{ item.marketPrice }}</span>
         </button>
@@ -92,9 +78,44 @@
           :total="totalPage"
           layout="total, sizes, prev, pager, next"
         ></el-pagination>
-        <button v-if="dataDialogForm.id" type="button" class="danger-btn" @click="handleDelete(0, dataDialogForm)">
+        <button v-if="dataDialogForm.id" type="button" class="danger-btn" @click="handleDelete(dataDialogForm)">
           删除当前商品
         </button>
+      </div>
+    </section>
+
+    <section class="entity-card entity-card--type">
+      <div class="section-head">
+        <h3>商品分类管理</h3>
+        <div class="head-actions">
+          <button type="button" class="plain-btn" @click="resetTypeForm">新增分类</button>
+        </div>
+      </div>
+
+      <div class="type-form">
+        <el-input v-model="typeForm.shopType" placeholder="请输入分类名称"></el-input>
+        <el-input v-model="typeForm.info" placeholder="请输入分类描述"></el-input>
+        <button type="button" class="plain-btn" :disabled="typeSubmitting" @click="saveType">
+          {{ typeSubmitting ? "保存中..." : typeForm.id ? "更新分类" : "保存分类" }}
+        </button>
+      </div>
+
+      <div class="type-table">
+        <div class="type-head">
+          <span>ID</span>
+          <span>名称</span>
+          <span>描述</span>
+          <span>操作</span>
+        </div>
+        <div v-for="item in shopTypeList" :key="'type-' + item.id" class="type-row">
+          <span>{{ item.id }}</span>
+          <span>{{ item.shopType }}</span>
+          <span>{{ item.info || "-" }}</span>
+          <span class="type-actions">
+            <button type="button" class="plain-btn" @click="editType(item)">编辑</button>
+            <button type="button" class="danger-btn" @click="deleteType(item)">删除</button>
+          </span>
+        </div>
       </div>
     </section>
   </div>
@@ -129,20 +150,26 @@ export default {
         name: [{ required: true, message: "请输入商品名称", trigger: "blur" }],
         parentId: [{ required: true, message: "请选择商品分类", trigger: "change" }],
       },
+      typeForm: {
+        id: 0,
+        shopType: "",
+        info: "",
+      },
+      typeSubmitting: false,
       specsList: [
         { id: 0, name: "箱" },
         { id: 1, name: "件" },
-        { id: 2, name: "台" },
-        { id: 3, name: "套" },
+        { id: 2, name: "包" },
+        { id: 3, name: "个" },
       ],
     };
   },
   computed: {
     displayShopCode() {
       if (this.dataDialogForm.id) {
-        return this.formatDisplayCode("SKU", this.dataDialogForm.id, 4);
+        return this.formatDisplayCode("商品", this.dataDialogForm.id, 4);
       }
-      return `SKU-${this.draftCodeSeed || "NEW"}`;
+      return `商品-${this.draftCodeSeed || "草稿"}`;
     },
   },
   mounted() {
@@ -151,6 +178,14 @@ export default {
     this.getDataList();
   },
   methods: {
+    shopTypeName(parentId) {
+      const hit = this.shopTypeList.find((x) => Number(x.id) === Number(parentId));
+      return hit ? hit.shopType : String(parentId || "-");
+    },
+    searchData() {
+      this.pageIndex = 1;
+      this.getDataList();
+    },
     formatDisplayCode(prefix, value, pad = 4) {
       return `${prefix}-${String(value).padStart(pad, "0")}`;
     },
@@ -170,7 +205,7 @@ export default {
       this.pageIndex = val;
       this.getDataList();
     },
-    handleEdit(index, item) {
+    handleEdit(item) {
       this.dataDialogForm = {
         id: item.id,
         name: item.name,
@@ -199,7 +234,7 @@ export default {
           });
       });
     },
-    handleDelete(index, item) {
+    handleDelete(item) {
       if (!item.id) {
         return;
       }
@@ -235,6 +270,65 @@ export default {
       this.$http.get("/shop/getShopTypeList").then((res) => {
         this.shopTypeList = res.data.data || [];
       });
+    },
+    editType(item) {
+      this.typeForm = {
+        id: item.id || 0,
+        shopType: item.shopType || "",
+        info: item.info || "",
+      };
+    },
+    resetTypeForm() {
+      this.typeForm = {
+        id: 0,
+        shopType: "",
+        info: "",
+      };
+    },
+    saveType() {
+      if (!this.typeForm.shopType || !this.typeForm.shopType.trim()) {
+        this.$message.warning("请输入分类名称");
+        return;
+      }
+      if (this.typeSubmitting) {
+        return;
+      }
+      this.typeSubmitting = true;
+      this.$http
+        .post("/shop/saveShopType", {
+          id: this.typeForm.id || null,
+          shopType: this.typeForm.shopType.trim(),
+          info: this.typeForm.info || "",
+        })
+        .then((res) => {
+          if (res.data.code === 200) {
+            this.$message.success(this.typeForm.id ? "分类已更新" : "分类已新增");
+            this.resetTypeForm();
+            this.getShopTypeList();
+          } else {
+            this.$message.error(res.data.message || "保存失败");
+          }
+        })
+        .finally(() => {
+          this.typeSubmitting = false;
+        });
+    },
+    deleteType(item) {
+      this.$confirm("确认删除该分类吗？", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => this.$http.post(`/shop/deleteShopType?id=${item.id}`))
+        .then((res) => {
+          if (res.data.code === 200) {
+            this.$message.success("分类删除成功");
+            this.getShopTypeList();
+          } else {
+            this.$message.error(res.data.message || "删除失败");
+          }
+        })
+        .catch(() => {});
     },
     getDataList() {
       if (this.dataListLoading) {
@@ -321,12 +415,6 @@ export default {
   gap: 0 12px;
 }
 
-.field-tip {
-  margin: 6px 0 0;
-  color: #9a9a93;
-  font-size: 12px;
-}
-
 .save-btn {
   width: 100%;
   margin-top: 6px;
@@ -382,6 +470,51 @@ export default {
   margin-top: 14px;
 }
 
+.entity-card--type {
+  grid-column: 1 / -1;
+}
+
+.type-form {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr auto;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.type-table {
+  display: grid;
+  gap: 6px;
+}
+
+.type-head,
+.type-row {
+  display: grid;
+  grid-template-columns: 80px 1.1fr 1.5fr 220px;
+  gap: 10px;
+  align-items: center;
+}
+
+.type-head {
+  color: #9a9a93;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 8px 8px;
+}
+
+.type-row {
+  padding: 10px 8px;
+  border: 1px solid #f0e9db;
+  border-radius: 12px;
+  background: #fffdfa;
+  color: #54605f;
+  font-size: 13px;
+}
+
+.type-actions {
+  display: flex;
+  gap: 8px;
+}
+
 @media (max-width: 1080px) {
   .entity-page {
     grid-template-columns: 1fr;
@@ -390,7 +523,10 @@ export default {
   .form-grid,
   .entity-table__head,
   .entity-table__row,
-  .table-foot {
+  .table-foot,
+  .type-form,
+  .type-head,
+  .type-row {
     grid-template-columns: 1fr;
   }
 }

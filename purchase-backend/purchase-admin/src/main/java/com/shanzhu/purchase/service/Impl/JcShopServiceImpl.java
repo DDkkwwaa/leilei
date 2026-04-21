@@ -125,4 +125,41 @@ public class JcShopServiceImpl implements JcShopService {
         return shopTypeMapper.selectByExample(new JcmdShopTypeExample());
     }
 
+    @Override
+    public int saveShopType(JcmdShopType shopType) {
+        if (shopType == null || StrUtil.isBlank(shopType.getShopType())) {
+            return 0;
+        }
+        String name = shopType.getShopType().trim();
+        JcmdShopTypeExample checkExample = new JcmdShopTypeExample();
+        JcmdShopTypeExample.Criteria criteria = checkExample.createCriteria().andShopTypeEqualTo(name);
+        if (shopType.getId() != null) {
+            criteria.andIdNotEqualTo(shopType.getId());
+        }
+        if (shopTypeMapper.countByExample(checkExample) > 0) {
+            return -2;
+        }
+        shopType.setShopType(name);
+        if (shopType.getId() != null && shopType.getId() > 0) {
+            return shopTypeMapper.updateByPrimaryKeySelective(shopType);
+        }
+        if (shopType.getClassId() == null) {
+            shopType.setClassId(System.currentTimeMillis());
+        }
+        return shopTypeMapper.insertSelective(shopType);
+    }
+
+    @Override
+    public int deleteShopType(Integer id) {
+        if (id == null || id <= 0) {
+            return 0;
+        }
+        JcmdShopExample linkedShopExample = new JcmdShopExample();
+        linkedShopExample.createCriteria().andParentIdEqualTo(Long.valueOf(id));
+        if (shopMapper.countByExample(linkedShopExample) > 0) {
+            return -1;
+        }
+        return shopTypeMapper.deleteByPrimaryKey(id);
+    }
+
 }

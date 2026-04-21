@@ -51,4 +51,8 @@ public interface JcShopService {
     ArrayList<Object> getShopNameAll();
 
     List<JcmdShopType> selectShopTypeList();
+
+    int saveShopType(JcmdShopType shopType);
+
+    int deleteShopType(Integer id);
 }

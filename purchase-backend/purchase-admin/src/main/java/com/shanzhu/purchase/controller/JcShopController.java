@@ -1,6 +1,5 @@
 package com.shanzhu.purchase.controller;
 
-
 import com.shanzhu.purchase.model.JcmdShop;
 import com.shanzhu.purchase.model.JcmdShopType;
 import com.shanzhu.purchase.service.JcShopService;
@@ -9,15 +8,20 @@ import com.shanzhu.purchase.util.commonResult;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @RestController
-@Api(tags = "JcShopCustomer", description = "jc-2商品表")
+@Api(tags = "JcShopCustomer", description = "基础信息管理-商品")
 @Tag(name = "JcShopCustomer", description = "基础信息管理-商品")
 @RequestMapping("/shop")
 public class JcShopController {
@@ -25,7 +29,7 @@ public class JcShopController {
     @Resource
     private JcShopService shopService;
 
-    @ApiOperation("添加商品")
+    @ApiOperation("新增商品")
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     @ResponseBody
     public commonResult create(@RequestBody JcmdShop shop) {
@@ -50,7 +54,7 @@ public class JcShopController {
     @ApiOperation("删除商品")
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
     @ResponseBody
-    public commonResult delete(Long id) {
+    public commonResult delete(@RequestParam Long id) {
         int count = shopService.delete(id);
         if (count > 0) {
             return commonResult.success(count);
@@ -61,7 +65,7 @@ public class JcShopController {
         return commonResult.failed();
     }
 
-    @ApiOperation("根据商品名或 地区获取商品")
+    @ApiOperation("根据商品名称分页查询商品")
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     @ResponseBody
     public commonResult<commonPage<JcmdShop>> list(
@@ -73,26 +77,23 @@ public class JcShopController {
         return commonResult.success(commonPage.restPage(shopList));
     }
 
-    @ApiOperation("获取所有的商品id和名称")
+    @ApiOperation("获取所有商品id和名称")
     @RequestMapping(value = "/getShopNameAll", method = RequestMethod.GET)
     @ResponseBody
     public commonResult<ArrayList<Object>> getShopNameAll() {
         ArrayList<Object> shopNameAll = shopService.getShopNameAll();
-
         return commonResult.success(shopNameAll);
     }
 
-    @ApiOperation("根据商品名称获取商品类型")
+    @ApiOperation("根据商品名称获取商品分类")
     @RequestMapping(value = "/getShopTypeByName", method = RequestMethod.GET)
     @ResponseBody
-    public commonResult<JcmdShopType> selectShopTypeByName(String shopName) {
+    public commonResult<JcmdShopType> selectShopTypeByName(@RequestParam String shopName) {
         JcmdShopType shopType = shopService.selectShopTypeByName(shopName);
-
         return commonResult.success(shopType);
     }
 
-    //获取商品类型
-    @ApiOperation("获取商品类型列表")
+    @ApiOperation("获取商品分类列表")
     @RequestMapping(value = "/getShopTypeList", method = RequestMethod.GET)
     @ResponseBody
     public commonResult<List<JcmdShopType>> selectShopTypeList() {
@@ -100,4 +101,31 @@ public class JcShopController {
         return commonResult.success(shopTypeList);
     }
 
+    @ApiOperation("新增或编辑商品分类")
+    @RequestMapping(value = "/saveShopType", method = RequestMethod.POST)
+    @ResponseBody
+    public commonResult saveShopType(@RequestBody JcmdShopType shopType) {
+        int count = shopService.saveShopType(shopType);
+        if (count > 0) {
+            return commonResult.success("成功");
+        }
+        if (count == -2) {
+            return commonResult.failed("分类名称重复，请修改后重试");
+        }
+        return commonResult.failed("操作失败");
+    }
+
+    @ApiOperation("删除商品分类")
+    @RequestMapping(value = "/deleteShopType", method = RequestMethod.POST)
+    @ResponseBody
+    public commonResult deleteShopType(@RequestParam("id") Integer id) {
+        int count = shopService.deleteShopType(id);
+        if (count > 0) {
+            return commonResult.success("成功");
+        }
+        if (count == -1) {
+            return commonResult.failed("分类已被商品引用，无法删除");
+        }
+        return commonResult.failed("操作失败");
+    }
 }
